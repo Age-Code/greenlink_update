@@ -6,7 +6,7 @@ class StreamUrls {
   // 지정하지 않으면 기존 운영 주소를 그대로 사용한다.
   static const String baseUrl = String.fromEnvironment(
     'GREENLINK_STREAM_BASE_URL',
-    defaultValue: 'https://camera.likepigs.shop',
+    defaultValue: 'https://greenlink-camera.likepigs.shop',
   );
 
   static const String all = '$baseUrl/stream.mjpg';

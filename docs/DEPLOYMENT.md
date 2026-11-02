@@ -85,11 +85,28 @@ curl -I https://greenlink.likepigs.shop/api/plants
 
 관리자 페이지: `https://greenlink.likepigs.shop/admin/login` — 최초 관리자로 로그인을 확인한 뒤 `.env`에서 `GREENLINK_BOOTSTRAP_ADMIN_*` 두 줄을 지우고 `docker compose -f docker-compose.prod.yml up -d --force-recreate`.
 
-## 다른 구성요소가 새 주소를 쓰도록 바꾸기
+## 장치 연결 (재배기 1대 = 식물 1개)
+
+순서가 중요합니다. 백엔드에 식물이 있어야 장치를 그 식물에 연결할 수 있습니다.
+
+1. **앱에서 식물 심기**: 앱(기본 API 주소가 `https://greenlink.likepigs.shop/api`)으로 실제 사용할 계정에 가입하고, 지급된 바질 씨앗을 심습니다. 식물 상세 화면 또는 관리자 대시보드에서 `userPlantId`를 확인합니다.
+2. **백엔드에 장치 등록 + 설정 파일 생성** (맥, 저장소 루트):
+   ```bash
+   python3 scripts/setup_iot.py --user-plant-id <userPlantId> --ai-worker-url http://<ai-worker-host>:9000/process
+   ```
+   - 관리자 계정은 루트 `.env`의 `GREENLINK_BOOTSTRAP_ADMIN_*`를 읽습니다(이미 지웠다면 `GREENLINK_ADMIN_EMAIL`/`GREENLINK_ADMIN_PASSWORD` 환경변수로 전달).
+   - 재배 공간 `greenlink-grower-1`, 장치 `greenlink-pi`·`greenlink-esp`, 펌프 채널(GPIO 22)을 만들고 장치 키를 무작위로 생성합니다. 여러 번 실행해도 중복 등록하지 않습니다.
+   - 생성 파일(커밋 금지): `greenlink_pi/greenlink.env`, `greenlink_esp/secrets.ini`, `greenlink_ubuntu/.env`. Pi와 AI Worker의 `/process` secret은 같은 값으로 맞춰집니다.
+3. **Raspberry Pi**: `greenlink_pi/greenlink.env`를 Pi의 `~/greenlink/greenlink.env`로 복사하고 서비스(`greenlink-command`, `greenlink-stream`)와 cron을 재시작합니다.
+4. **ESP32**: `greenlink_esp/secrets.ini`에 Wi-Fi와 실측 보정값(DRY/WET_RAW)을 채운 뒤 `pio run -t upload`.
+5. **AI Worker**: `greenlink_ubuntu/.env`에 OpenAI 키를 채우고 Worker를 실행할 서버에 둡니다. Pi에서 접근 가능한 주소를 2번의 `--ai-worker-url`로 지정합니다.
+6. **카메라 스트림**: 예전 `camera.likepigs.shop` 터널은 없습니다. 앱 기본값은 `https://greenlink-camera.likepigs.shop`이므로, Pi에 cloudflared 터널을 만들고 이 주소를 `http://localhost:8000`으로 연결합니다(다른 주소를 쓰면 앱 빌드 시 `--dart-define=GREENLINK_STREAM_BASE_URL=...`). 인증 없는 영상이라 공개 범위는 Cloudflare Access 등으로 제한하는 것을 권장합니다.
+
+## 구성요소별 서버 주소
 
 | 구성요소 | 설정 | 값 |
 | --- | --- | --- |
-| Flutter 앱 | 빌드 시 `--dart-define=GREENLINK_API_BASE_URL=https://greenlink.likepigs.shop/api` (기본값은 예전 주소) | API base URL |
+| Flutter 앱 | 기본값 (`--dart-define=GREENLINK_API_BASE_URL`로 변경 가능) | `https://greenlink.likepigs.shop/api` |
 | Raspberry Pi | `greenlink.env`의 `GREENLINK_BASE_URL` | `https://greenlink.likepigs.shop` |
 | ESP32 | `secrets.ini`의 `GREENLINK_SERVER_URL` | `https://greenlink.likepigs.shop/api/iot/esp/soil-moisture` (HTTPS 인증서 검증은 실기기 확인 필요) |
 | AI Worker | `.env`의 `BACKEND_BASE_URL` | `https://greenlink.likepigs.shop` |

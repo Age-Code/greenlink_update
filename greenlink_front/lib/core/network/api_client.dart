@@ -12,7 +12,7 @@ class ApiClient {
   // 지정하지 않으면 기존 운영 주소를 그대로 사용한다.
   static const String baseUrl = String.fromEnvironment(
     'GREENLINK_API_BASE_URL',
-    defaultValue: 'https://likepigs.shop/api',
+    defaultValue: 'https://greenlink.likepigs.shop/api',
   );
   final TokenStorage _tokenStorage = TokenStorage();
 
