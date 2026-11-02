@@ -9,6 +9,12 @@
 3. 백엔드에 저장된 물주기/조명/센서 갱신 명령을 폴링하여 GPIO를 제어합니다.
 4. 백엔드 이미지 업로드 성공 후 Ubuntu AI 작업자에게 이미지 변환을 요청합니다.
 
+> **현재 구성: 재배기 1대 = 식물 1개 (2026-11 변경)**
+> 예전 해바라기/바질 2식물 구성(좌우 crop, 펌프 2개, `/stream/sunflower.mjpg`·`/stream/basil.mjpg`)은 제거되었습니다.
+> * 식물: `GREENLINK_USER_PLANT_ID` 하나. 카메라는 crop 없이 전체 프레임을 스트림·사진으로 사용합니다.
+> * 펌프: `GREENLINK_PUMP_GPIO`(기본 22) 하나. Backend `PumpChannel.gpioPin`과 같은 값이어야 하며, 다른 GPIO의 WATER 명령은 펌프를 켜기 전에 거부됩니다.
+> * 아래 본문 중 코드 발췌나 crop 설명은 이전 구성 기준일 수 있으니 현재 소스를 우선합니다.
+
 ESP 토양 센서 데이터를 Pi가 중계하는 코드는 확인되지 않습니다. ESP는 별도로 백엔드에 직접 전송합니다. `config.py`에는 백엔드/AI 서버 주소 및 장치 키 종류의 민감 설정이 포함되어 있으므로 실제 값은 문서화하지 않습니다.
 
 현재 WATER 지속시간 resolver와 worker의 정상 1초 fallback·invalid 명령 처리에 대한 Python unittest 5개가 통과했습니다. 실제 GPIO/펌프 하드웨어 시험은 이 검증 환경에서 실행하지 않았습니다.
@@ -92,15 +98,14 @@ greenlink_pi/
 | BCM GPIO 4 | DHT22 | 온도/습도 입력 | `config.py`, `sensor_service.py` |
 | I2C bus 1, address `0x23` | BH1750 | 조도 입력 | `config.py`, `sensor_service.py` |
 | BCM GPIO 27 | 조명 릴레이 | LED 조명 on/off | `config.py`, `relay_control.py` |
-| BCM GPIO 22 | 한 식물용 펌프 릴레이 | 물주기 출력 | `config.py`, `relay_control.py` |
-| BCM GPIO 23 | 다른 식물용 펌프 릴레이 | 물주기 출력 | `config.py`, `relay_control.py` |
+| BCM GPIO `GREENLINK_PUMP_GPIO` (기본 22) | 펌프 릴레이 | 물주기 출력 | `config.py`, `relay_control.py` |
 | Camera interface | Pi Camera | MJPEG 및 사진 캡처 | `stream_server.py`; `camera_service.py`는 legacy |
 
 릴레이는 코드상 active-low 동작으로 설정되어 있습니다. 즉, 실제 전기 연결이 이 전제와 다르면 명령과 물리 동작이 반대로 될 수 있으므로 설치 시 검증이 필요합니다.
 
-**프로세스 밖 구간의 릴레이 상태 주의**: `command_worker.py`는 SIGTERM/SIGHUP을 받으면 펌프 `finally`와 `all_off()`를 실행한 뒤 종료합니다. 그러나 부팅 직후 워커가 뜨기 전, 그리고 gpiozero가 종료 시 핀을 입력으로 되돌린 뒤에는 핀이 소프트웨어 제어를 벗어납니다. BCM 22/23/27의 기본 내부 pull은 pull-down이므로, active-low 릴레이 모듈이 IN 입력을 LOW로 읽으면 이 구간에 펌프·LED가 켜질 수 있습니다. 설치 시 워커를 정지한 상태와 재부팅 직후 릴레이 LED를 실측하고, 켜진다면 다음 중 하나를 적용합니다.
+**프로세스 밖 구간의 릴레이 상태 주의**: `command_worker.py`는 SIGTERM/SIGHUP을 받으면 펌프 `finally`와 `all_off()`를 실행한 뒤 종료합니다. 그러나 부팅 직후 워커가 뜨기 전, 그리고 gpiozero가 종료 시 핀을 입력으로 되돌린 뒤에는 핀이 소프트웨어 제어를 벗어납니다. BCM 22/23/27 등 해당 핀의 기본 내부 pull은 pull-down이므로, active-low 릴레이 모듈이 IN 입력을 LOW로 읽으면 이 구간에 펌프·LED가 켜질 수 있습니다. 설치 시 워커를 정지한 상태와 재부팅 직후 릴레이 LED를 실측하고, 켜진다면 다음 중 하나를 적용합니다.
 
-* `/boot/firmware/config.txt`(구버전은 `/boot/config.txt`)에 `gpio=22,23,27=op,dh`를 추가해 부팅 시 출력 HIGH(OFF)로 고정
+* `/boot/firmware/config.txt`(구버전은 `/boot/config.txt`)에 `gpio=22,27=op,dh`(펌프 GPIO를 바꿨다면 그 번호로)를 추가해 부팅 시 출력 HIGH(OFF)로 고정
 * 릴레이 IN 핀에 외부 pull-up 저항(예: 10kΩ to 3.3V) 추가
 * SIGKILL·전원 차단은 소프트웨어로 막을 수 없으므로 위 하드웨어/부팅 설정이 최종 방어선입니다.
 
@@ -399,8 +404,6 @@ max_duration_seconds = floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_se
 | `/` | 기본 안내 페이지 |
 | `/health` | 카메라 stream 서버 상태 확인 |
 | `/stream.mjpg` | 전체 카메라 MJPEG |
-| `/stream/sunflower.mjpg` | 한 crop 영역의 MJPEG |
-| `/stream/basil.mjpg` | 다른 crop 영역의 MJPEG |
 
 `camera_snapshot_main.py` legacy 파일은 삭제 완료되었습니다. `/snapshot.jpg` legacy 진입점이 제거되어 GAP-07은 해소되었습니다. 현재 active 경로는 `camera_main.py`가 `stream_snapshot_service.py`를 통해 MJPEG에서 직접 frame을 추출하는 방식입니다.
 

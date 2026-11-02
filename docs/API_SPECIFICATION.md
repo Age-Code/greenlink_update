@@ -501,12 +501,10 @@ sequenceDiagram
 | GET | `/` | HTML 안내 | 브라우저 확인용 |
 | GET | `/health` | JSON 상태 및 stream 정보 | 상태 확인 |
 | GET | `/stream.mjpg` | multipart MJPEG | 전체 화면, Pi snapshot 및 앱 기본 stream |
-| GET | `/stream/sunflower.mjpg` | multipart MJPEG | crop stream |
-| GET | `/stream/basil.mjpg` | multipart MJPEG | crop stream |
 
 인증 또는 접근 제한 로직은 `stream_server.py`에서 확인되지 않습니다. 별도 배포 reverse proxy 설정은 코드상 확인되지 않습니다.
 
-현재 snapshot/crop 경로는 `stream_snapshot_service.py`가 MJPEG stream에서 JPEG 프레임을 추출하는 방식입니다. 삭제된 legacy `camera_snapshot_main.py`가 사용하던 `/snapshot.jpg` route는 현행 계약이 아닙니다.
+식물 한 개 기준으로 crop stream은 제거되었습니다. 현재 snapshot 경로는 `stream_snapshot_service.py`가 MJPEG stream에서 JPEG 프레임을 추출하는 방식입니다. 삭제된 legacy `camera_snapshot_main.py`가 사용하던 `/snapshot.jpg` route는 현행 계약이 아닙니다.
 
 ## 10. Flutter와 API 계약 대조
 

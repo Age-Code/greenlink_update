@@ -33,7 +33,7 @@ def capture_image() -> Path:
 
     IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
-    filename = IMAGE_DIR / f"sunflower_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+    filename = IMAGE_DIR / f"plant_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
 
     picam2 = Picamera2()
 

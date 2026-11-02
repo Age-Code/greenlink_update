@@ -277,7 +277,7 @@ python3 stream_server.py
 python3 command_worker.py
 ```
 
-**필요 설정**: 서버 endpoint, 장치 키, GPIO 핀 매핑(`config.py`)
+**필요 설정**: 서버 endpoint, 장치 키, 식물 ID(`GREENLINK_USER_PLANT_ID`), 펌프 GPIO(`GREENLINK_PUMP_GPIO`, 기본 22). 재배기 1대에 식물 1개를 기준으로 하며 카메라는 전체 화면을 사용합니다. (`greenlink.env.example` 참고)
 
 ### 5. Ubuntu AI Worker (FastAPI)
 

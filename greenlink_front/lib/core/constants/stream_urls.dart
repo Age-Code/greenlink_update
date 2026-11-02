@@ -10,6 +10,4 @@ class StreamUrls {
   );
 
   static const String all = '$baseUrl/stream.mjpg';
-  static const String sunflower = '$baseUrl/stream/sunflower.mjpg';
-  static const String basil = '$baseUrl/stream/basil.mjpg';
 }

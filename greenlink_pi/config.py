@@ -35,11 +35,8 @@ AI_PROCESS_SECRET = _require_env("GREENLINK_AI_PROCESS_SECRET")
 # Backend DB의 userPlantId와 반드시 일치해야 한다.
 # 값이 틀리면 다른 식물에 사진이 업로드되므로 소스에 고정하지 않고 환경변수로 주입한다.
 
-SUNFLOWER_USER_PLANT_ID = int(_require_env("GREENLINK_SUNFLOWER_USER_PLANT_ID"))
-BASIL_USER_PLANT_ID = int(_require_env("GREENLINK_BASIL_USER_PLANT_ID"))
-
-# 기존 코드 호환용
-TOMATO_USER_PLANT_ID = SUNFLOWER_USER_PLANT_ID
+# 재배기 한 대에 식물 한 개를 기준으로 운영한다.
+USER_PLANT_ID = int(_require_env("GREENLINK_USER_PLANT_ID"))
 
 
 # 파일/이미지 저장 설정
@@ -52,24 +49,12 @@ IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 # 실시간 스트림 스냅샷 설정
 # 아침 자동 촬영은 카메라를 새로 열지 않고,
 # greenlink-stream의 전체 원본 스트림에서 JPEG 1장을 가져온다.
-# 그 이미지 하나를 해바라기/바질 영역으로 crop해서 각각 업로드한다.
+# 식물 한 개 기준이므로 crop 없이 전체 프레임을 그대로 업로드한다.
 
 LOCAL_STREAM_BASE_URL = "http://127.0.0.1:8000"
 
 # 전체 원본 스트림
 FULL_STREAM_URL = f"{LOCAL_STREAM_BASE_URL}/stream.mjpg"
-
-# stream_server.py와 동일한 crop 기준
-# 현재 기준:
-# 해바라기 = 오른쪽 절반
-# 바질     = 왼쪽 절반
-# 만약 실제 업로드 결과가 반대로 나오면 두 값을 서로 바꾸면 된다.
-SUNFLOWER_CROP = (0.5, 0.0, 1.0, 1.0)
-BASIL_CROP = (0.0, 0.0, 0.5, 1.0)
-
-# crop 결과 저장 크기
-SNAPSHOT_OUTPUT_WIDTH = 1080
-SNAPSHOT_OUTPUT_HEIGHT = 1620
 
 
 # 카메라 이미지 방향 보정
@@ -84,17 +69,15 @@ IMAGE_FLIP_LEFT_RIGHT = False
 
 
 # 릴레이 GPIO 설정
-# 정상 작동했던 기존 배선 기준:
 # GPIO27 → LED
-# GPIO22 → 바질 펌프
-# GPIO23 → 해바라기 펌프
+# 펌프 → GREENLINK_PUMP_GPIO (기본 22). 배선을 바꾸면 환경변수만 수정한다.
+# Backend PumpChannel의 gpioPin도 같은 값이어야 명령이 실행된다.
 
 RELAY_LED_GPIO = 27
-RELAY_BASIL_PUMP_GPIO = 22
-RELAY_SUNFLOWER_PUMP_GPIO = 23
+RELAY_PUMP_GPIO = int(os.environ.get("GREENLINK_PUMP_GPIO", "22"))
 
-# 기존 코드 호환용
-RELAY_TOMATO_PUMP_GPIO = RELAY_SUNFLOWER_PUMP_GPIO
+if RELAY_PUMP_GPIO == RELAY_LED_GPIO:
+    raise RuntimeError("GREENLINK_PUMP_GPIO는 LED 릴레이 GPIO와 달라야 합니다.")
 
 # 릴레이 모듈이 active LOW 방식이면 False
 RELAY_ACTIVE_HIGH = False

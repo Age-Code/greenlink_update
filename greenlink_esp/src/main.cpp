@@ -9,7 +9,7 @@
 //
 // Wi-Fi 자격 정보, 서버 주소, 장치 키는 소스에 두지 않는다.
 // secrets.ini의 build_flags로 주입하며, 없으면 빌드 단계에서 실패한다.
-// 해바라기용/바질용 보드는 각각 다른 DEVICE_KEY로 빌드한다.
+// 보드마다 Backend에 등록된 DEVICE_KEY로 빌드한다.
 // 자세한 내용은 secrets.ini.example 참고.
 
 #ifndef GREENLINK_WIFI_SSID
@@ -57,7 +57,7 @@ const int SOIL_SENSOR_PIN = 34;
 // 공기 중 raw 값은 센서 정상 확인용이고,
 // 실제 계산에는 "마른 흙 raw"와 "충분히 젖은 흙 raw"를 사용한다.
 //
-// 해바라기 센서 기준 측정값:
+// 기존 센서 기준 측정값 (참고용):
 // 공기 중: 2783, 2781
 // 마른 흙: 2213, 2224
 // 젖은 흙: 1711, 1710

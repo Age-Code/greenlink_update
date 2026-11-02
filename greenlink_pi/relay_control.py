@@ -5,8 +5,7 @@ from time import sleep
 
 from config import (
     RELAY_LED_GPIO,
-    RELAY_BASIL_PUMP_GPIO,
-    RELAY_SUNFLOWER_PUMP_GPIO,
+    RELAY_PUMP_GPIO,
     RELAY_ACTIVE_HIGH,
 )
 
@@ -17,14 +16,8 @@ led_relay = OutputDevice(
     initial_value=False
 )
 
-basil_pump_relay = OutputDevice(
-    RELAY_BASIL_PUMP_GPIO,
-    active_high=RELAY_ACTIVE_HIGH,
-    initial_value=False
-)
-
-sunflower_pump_relay = OutputDevice(
-    RELAY_SUNFLOWER_PUMP_GPIO,
+pump_relay = OutputDevice(
+    RELAY_PUMP_GPIO,
     active_high=RELAY_ACTIVE_HIGH,
     initial_value=False
 )
@@ -40,24 +33,14 @@ def set_led(on: bool):
         led_relay.off()
 
 
-# 바질 펌프 릴레이 제어 — on/off 상태 적용
-def set_basil_pump(on: bool):
+# 펌프 릴레이 제어 — on/off 상태 적용
+def set_pump(on: bool):
     if on:
-        print(f"[RELAY] 바질 펌프 ON: GPIO {RELAY_BASIL_PUMP_GPIO}")
-        basil_pump_relay.on()
+        print(f"[RELAY] 펌프 ON: GPIO {RELAY_PUMP_GPIO}")
+        pump_relay.on()
     else:
-        print(f"[RELAY] 바질 펌프 OFF: GPIO {RELAY_BASIL_PUMP_GPIO}")
-        basil_pump_relay.off()
-
-
-# 해바라기 펌프 릴레이 제어 — on/off 상태 적용
-def set_sunflower_pump(on: bool):
-    if on:
-        print(f"[RELAY] 해바라기 펌프 ON: GPIO {RELAY_SUNFLOWER_PUMP_GPIO}")
-        sunflower_pump_relay.on()
-    else:
-        print(f"[RELAY] 해바라기 펌프 OFF: GPIO {RELAY_SUNFLOWER_PUMP_GPIO}")
-        sunflower_pump_relay.off()
+        print(f"[RELAY] 펌프 OFF: GPIO {RELAY_PUMP_GPIO}")
+        pump_relay.off()
 
 
 # LED 켜기
@@ -72,33 +55,22 @@ def led_off():
 
 # 펌프 작동 — gpioPin에 durationSeconds 동안 신호 출력 후 반드시 off
 def pump_for_gpio(gpio_pin: int, seconds: float):
-    if gpio_pin == RELAY_BASIL_PUMP_GPIO:
-        print(f"[RELAY] 바질 펌프 작동: GPIO {gpio_pin}, {seconds}초")
-        try:
-            set_basil_pump(True)
-            sleep(seconds)
-        finally:
-            set_basil_pump(False)
-        return
+    if gpio_pin != RELAY_PUMP_GPIO:
+        raise ValueError(f"등록되지 않은 펌프 GPIO입니다: {gpio_pin}")
 
-    if gpio_pin == RELAY_SUNFLOWER_PUMP_GPIO:
-        print(f"[RELAY] 해바라기 펌프 작동: GPIO {gpio_pin}, {seconds}초")
-        try:
-            set_sunflower_pump(True)
-            sleep(seconds)
-        finally:
-            set_sunflower_pump(False)
-        return
-
-    raise ValueError(f"등록되지 않은 펌프 GPIO입니다: {gpio_pin}")
+    print(f"[RELAY] 펌프 작동: GPIO {gpio_pin}, {seconds}초")
+    try:
+        set_pump(True)
+        sleep(seconds)
+    finally:
+        set_pump(False)
 
 
 # 전체 릴레이 OFF — LED/펌프 모두 정지
 def all_off():
     print("[RELAY] 전체 OFF")
     led_relay.off()
-    basil_pump_relay.off()
-    sunflower_pump_relay.off()
+    pump_relay.off()
 
 
 if __name__ == "__main__":
@@ -110,11 +82,8 @@ if __name__ == "__main__":
         sleep(2)
         led_off()
 
-        input("바질 펌프 수동 확인: 엔터를 누르면 바질 펌프가 1초 켜집니다.")
-        pump_for_gpio(RELAY_BASIL_PUMP_GPIO, 1)
-
-        input("해바라기 펌프 수동 확인: 엔터를 누르면 해바라기 펌프가 1초 켜집니다.")
-        pump_for_gpio(RELAY_SUNFLOWER_PUMP_GPIO, 1)
+        input("펌프 수동 확인: 엔터를 누르면 펌프가 1초 켜집니다.")
+        pump_for_gpio(RELAY_PUMP_GPIO, 1)
 
     finally:
         all_off()
