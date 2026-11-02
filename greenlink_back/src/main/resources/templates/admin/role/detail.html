@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head -->
+<th:block th:replace="~{includes/admin/head}" />
+
+<script id="permission-list-template" type="text/x-handlebars-template">
+    <tr>
+        <td>{{title}}</td>
+        <td><input type="checkbox" class='checkbox_all_{{permission}}' id="{{permission}}_0" onchange="listener_chk_permission('{{permission}}','0')"/></td>
+        <td><input type="checkbox" class='checkbox_each_{{permission}}' id="{{permission}}_120" onchange="listener_chk_permission('{{permission}}','120')"/></td>
+        <td><input type="checkbox" class='checkbox_each_{{permission}}' id="{{permission}}_150" onchange="listener_chk_permission('{{permission}}','150')"/></td>
+        <td><input type="checkbox" class='checkbox_each_{{permission}}' id="{{permission}}_180" onchange="listener_chk_permission('{{permission}}','180')"/></td>
+        <td><input type="checkbox" class='checkbox_each_{{permission}}' id="{{permission}}_200" onchange="listener_chk_permission('{{permission}}','200')"/></td>
+    </tr>
+</script>
+
+<script id="role-user-list-template" type="text/x-handlebars-template">
+    <tr>
+        <td>{{resId}}</td>
+        <td>{{resName}}</td>
+        <td>{{resDeleted}}</td>
+        <td>{{addUserId}}</td>
+        <td>{{addedAt}}</td>
+        <td><button class="btn btn-danger btn-sm" id='delete_{{resId}}' onclick="delete_role_user(this)">Delete</button></td>
+    </tr>
+</script>
+
+<script id="add-role-user-list-template" type="text/x-handlebars-template">
+    <tr>
+        <td><input type="checkbox" class='checkbox_role_user' id="list_{{resId}}" onclick="listener_chk_role_user(this)"/></td>
+        <td>{{resId}}</td>
+        <td>{{resName}}</td>
+        <td>{{resDeleted}}</td>
+    </tr>
+</script>
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topper -->
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <h1 class="h3 mb-2 text-gray-800">Role Detail</h1>
+                    <p class="mb-4">Role Detail example</p>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Id</label>
+                        <div class="col-sm-1">
+                            <input type="text" class="input_param form-control" id="role_id" name="id" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">Deleted</label>
+                        <div class="col-sm-1">
+                            <input type="text" class="input_param input_required form-control" id="role_deleted" name="deleted" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">CreatedAt</label>
+                        <div class="col-sm-2">
+                            <input type="text" class="input_param input_required form-control" id="role_created_at" name="createdAt" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">ModifiedAt</label>
+                        <div class="col-sm-2">
+                            <input type="text" class="input_param form-control" id="role_modified_at" name="modifiedAt" readonly/>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Name</label>
+                        <div class="col-sm-4">
+                            <input type="text" class="input_param input_required form-control" id="role_name" name="title" required/>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Content</label>
+                        <div class="col-sm-4">
+                            <textarea class="input_param form-control" id="role_content" name="content" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group row mt-6">
+                        <div class="col-sm-8 offset-sm-8 text-end">
+                            <button class="btn btn-primary m-1" id="update_role_btn" onclick="update_role()">Update</button>
+                            <button class="btn btn-danger m-1" id="delete_role_btn" onclick="delete_role()">Delete</button>
+                        </div>
+                    </div>
+
+                    <!-- Permission Table -->
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 nav nav-tabs" style="position: relative; height: 65px;">
+                            <a class="nav-link active" style="position: absolute; bottom: 0; left: 20px;" data-toggle="tab" href="#tab-part">Permission</a>
+                            <a class="nav-link"  style="position: absolute; bottom: 0; left: 135px;" data-toggle="tab" href="#tab-user">User</a>
+                        </div>
+                        <div class="tab-content card-body">
+                            <div id="tab-part" class="tab-pane active">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th>Permission</th>
+                                            <th>All</th>
+                                            <th>Create</th>
+                                            <th>Read</th>
+                                            <th>Update</th>
+                                            <th>Delete</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="permission_list">
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div id="tab-user" class="tab-pane">
+                                <table class="table table-bordered" id="dataTable_user">
+                                    <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Username</th>
+                                        <th>Deleted</th>
+                                        <th>Added By</th>
+                                        <th>Added At</th>
+                                        <th><button class="btn btn-success btn-sm" data-toggle="modal" data-target="#addModal" onclick="list_role_user()">Add</button></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="role_user_list">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <th:block th:replace="~{includes/admin/footer}" />
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Add Modal-->
+    <div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">RoleUser Add</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-bordered" id="dataTable_add_user">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="list_all" onclick="listener_chk_role_user(this)"/></th>
+                                <th>#</th>
+                                <th>Username</th>
+                                <th>Deleted</th>
+                            </tr>
+                        </thead>
+                        <tbody id = "add_role_user">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                    <button class="btn btn-success" id="add_role_user_btn" onclick="add_role_user()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <th:block th:replace="~{includes/admin/logout}" />
+
+    <!-- Script-->
+    <th:block th:replace="~{includes/admin/script}" />
+
+    <!-- Page level plugins -->
+    <script src="/sb-admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="/sb-admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+    <!-- Function-->
+    <script>
+        let role_id = window.location.pathname.split("/").pop();
+
+        let detail_permission = new Set();
+
+        $(document).ready(function(){
+            detail_role();
+        });
+
+        var permission_list_source = $("#permission-list-template").html();
+        var permission_list_template = Handlebars.compile(permission_list_source);
+
+        var role_user_list_source = $("#role-user-list-template").html();
+        var role_user_list_template = Handlebars.compile(role_user_list_source);
+
+        var add_role_user_list_source = $("#add-role-user-list-template").html();
+        var add_role_user_list_template = Handlebars.compile(add_role_user_list_source);
+
+        function detail_role() {
+            $.ajax({
+                url: "/api/role/detail",
+                method: "GET",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:{
+                    id: Number(role_id)
+                },
+                success: (data, status, xhr)=>{
+                    $("#role_id").val(data["roleId"]);
+                    $("#role_deleted").val(data["deleted"]);
+                    $("#role_created_at").val(data["createdAt"]);
+                    $("#role_modified_at").val(data["modifiedAt"]);
+                    $("#role_name").val(data["roleName"]);
+                    $("#role_content").val(data["content"]);
+                    $("#permission_list").html("");
+
+                    let permissions = data["permissions"];
+                    for (let each of permissions) {
+                        let tList = [];
+                        let eachData = {};
+                        eachData["permission"] = each[0];
+                        eachData["title"] = each[1];
+                        tList.push(eachData);
+                        $("#permission_list").append(permission_list_template(eachData));
+                    }
+
+                    let permissionList = data["permissionList"];
+                    for (let each of permissionList) {
+                        $("#" + each["permission"] + "_" + each["func"]).prop("checked", true);
+
+                        const key = `${each["permission"]}_${each["func"]}`;
+                        detail_permission.add(key);
+                        $("#" + key).prop("checked", true);
+                        listener_chk_permission(each["permission"], each["func"]);
+                    }
+
+                    let role_user = data["roleUserList"];
+                    if ($.fn.DataTable.isDataTable('#dataTable_user')) {
+                        $('#dataTable_user').DataTable().clear().destroy();
+                    }
+                    $("#role_user_list").html("");
+                    for (let each of role_user) {
+                        $("#role_user_list").append(role_user_list_template(each));
+                    }
+                    $('#dataTable_user').DataTable();
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function update_role(){
+            const update_permission = [];
+
+            $("input[type='checkbox']").each(function () {
+                const id = $(this).attr("id");
+                const now_checked = $(this).prop("checked");
+                const old_checked = detail_permission.has(id);
+
+                if (now_checked !== old_checked) {
+                    const [permission, func] = id.split("_");
+                    update_permission.push({
+                        active: now_checked,
+                        roleId: Number(role_id),
+                        permission: permission,
+                        func: parseInt(func)
+                    });
+                }
+            });
+
+            const data = {
+                id: Number(role_id),
+                roleName: $('#role_name').val(),
+                content: $('#role_content').val(),
+                permissionUpdate: update_permission
+            };
+
+            $.ajax({
+                url: "/api/role",
+                method: "PUT",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:JSON.stringify(data),
+                success: (data, status, xhr)=>{
+                    alert(JSON.stringify(status));
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function delete_role(){
+            $.ajax({
+                url: "/api/role",
+                method: "DELETE",
+                contentType: 'application/json; charset=utf-8',
+                headers: {
+                    "Authorization": localStorage.getItem("Authorization")
+                },
+                data: JSON.stringify({
+                    id: Number(role_id)
+                }),
+                success: (data, status, xhr)=>{
+                    alert(status);
+                    location.href = "/admin/role/list";
+                },
+                error: (data, status, xhr)=>{
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function list_role_user(){
+            $.ajax({
+                url: "/api/roleUser/addUserList",
+                method: "GET",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:{
+                    reqId: Number(role_id)
+                },
+                success: (data, status, xhr)=>{
+                    if ($.fn.DataTable.isDataTable('#dataTable_add_user')) {
+                        $('#dataTable_add_user').DataTable().clear().destroy();
+                    }
+                    $("#add_role_user").html("");
+                    for (let each of data) {
+                        $("#add_role_user").append(add_role_user_list_template(each));
+                    }
+                    $('#dataTable_add_user').DataTable();
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function add_role_user(){
+            const add_role_user = [];
+
+            $("input[type='checkbox'].checkbox_role_user").each(function () {
+                const id = $(this).attr("id");
+                const user_checked = $(this).prop("checked");
+
+                if (user_checked) {
+                    const [func, user_id] = id.split("_");
+                    add_role_user.push({
+                        roleId: Number(role_id),
+                        userId: Number(user_id)
+                    });
+                }
+            });
+
+            const data = {
+                addSevDtoList: add_role_user
+            };
+
+            $.ajax({
+                url: "/api/roleUser/add",
+                method: "POST",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:JSON.stringify(data),
+                success: (data, status, xhr)=>{
+                    list_role_user();
+                    detail_role();
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function delete_role_user(button){
+            const id = button.id;
+            const [func, user_id] = id.split("_");
+
+            const data = {
+                roleId: Number(role_id),
+                userId: Number(user_id)
+            };
+
+            $.ajax({
+                url: "/api/roleUser",
+                method: "DELETE",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:JSON.stringify(data),
+                success: (data, status, xhr)=>{
+                    detail_role();
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function listener_chk_permission(permission, func){
+            if (func === '0') {
+                let checked = $("#" + permission + "_" + func).prop("checked");
+                let input_chk_each = $(".checkbox_each_" + permission);
+                for(let each of input_chk_each){
+                    $(each).prop("checked", checked);
+                }
+            } else {
+                let isOn = true;
+                let input_chk_each = $(".checkbox_each_" + permission);
+                for (let each of input_chk_each) {
+                    let each_checked = $(each).prop("checked");
+                    if (!each_checked) {
+                        isOn = false;
+                    }
+                }
+                $("#" + permission + "_0").prop("checked", isOn);
+            }
+        }
+
+        function listener_chk_role_user(obj){
+            if (obj.id === "list_all") {
+                let checked = $("#list_all").prop("checked");
+                let input_chk_each = $(".checkbox_role_user");
+                for(let each of input_chk_each){
+                    $(each).prop("checked", checked);
+                }
+            } else {
+                let isOn = true;
+                let input_chk_each = $(".checkbox_role_user");
+                for (let each of input_chk_each) {
+                    let each_checked = $(each).prop("checked");
+                    if (!each_checked) {
+                        isOn = false;
+                    }
+                }
+                $("#list_all").prop("checked", isOn);
+            }
+        }
+    </script>
+
+</body>
+
+</html>

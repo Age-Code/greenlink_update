@@ -1,0 +1,19 @@
+
+# Firebase 설정 파일 (민감 정보 포함)
+**/google-services.json
+**/GoogleService-Info.plist
+
+# 일반 민감 파일
+**/application-keys.yaml
+**/*.env
+**/secrets/
+
+# OS / 런타임 산출물
+.DS_Store
+__pycache__/
+*.pyc
+*.log
+
+# AI Worker 처리 중간/결과 이미지
+greenlink_ubuntu/inputs/
+greenlink_ubuntu/outputs/

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+    <div id="wrapper">
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <div class="container-fluid">
+                    <h1 class="h3 mb-2 text-gray-800">User Detail</h1>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary" th:text="${user.nickname} + ' Profile'"></h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th>ID</th>
+                                            <td th:text="${user.id}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Email</th>
+                                            <td th:text="${user.email}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Nickname</th>
+                                            <td th:text="${user.nickname}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Role</th>
+                                            <td th:text="${user.role}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Provider</th>
+                                            <td th:text="${user.provider}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Created At</th>
+                                            <td th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Modified At</th>
+                                            <td th:text="${#temporals.format(user.modifiedAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <a href="/admin/users" class="btn btn-secondary mt-3">Back to List</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:replace="~{includes/admin/footer}" />
+        </div>
+    </div>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+    <th:block th:replace="~{includes/admin/logout}" />
+    <th:block th:replace="~{includes/admin/script}" />
+</body>
+</html>

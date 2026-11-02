@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+    <div id="wrapper">
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <div class="container-fluid">
+                    <h1 class="h3 mb-2 text-gray-800">Create Quest</h1>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Quest Form</h6>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                            
+                            <form th:action="@{/admin/quests}" th:object="${questDto}" method="post">
+                                <div class="form-group">
+                                    <label for="title">Title *</label>
+                                    <input type="text" class="form-control" id="title" th:field="*{title}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea class="form-control" id="description" th:field="*{description}"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="questType">Quest Type *</label>
+                                    <select class="form-control" id="questType" th:field="*{questType}" required>
+                                        <option th:each="type : ${questTypes}" th:value="${type}" th:text="${type.name()}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="targetType">Target Type *</label>
+                                    <select class="form-control" id="targetType" th:field="*{targetType}" required>
+                                        <option th:each="type : ${targetTypes}" th:value="${type}" th:text="${type.name()}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="targetValue">Target Value *</label>
+                                    <input type="number" class="form-control" id="targetValue" th:field="*{targetValue}" required min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rewardItemId">Reward Item ID</label>
+                                    <input type="number" class="form-control" id="rewardItemId" th:field="*{rewardItemId}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rewardQuantity">Reward Quantity *</label>
+                                    <input type="number" class="form-control" id="rewardQuantity" th:field="*{rewardQuantity}" required min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="resetCycle">Reset Cycle *</label>
+                                    <select class="form-control" id="resetCycle" th:field="*{resetCycle}" required>
+                                        <option th:each="type : ${resetCycles}" th:value="${type}" th:text="${type.name()}"></option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <a href="/admin/quests" class="btn btn-secondary">Cancel</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:replace="~{includes/admin/footer}" />
+        </div>
+    </div>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+    <th:block th:replace="~{includes/admin/logout}" />
+    <th:block th:replace="~{includes/admin/script}" />
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<!-- Head -->
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topper -->
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <h1 class="h3 mb-2 text-gray-800">Create Plant</h1>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Plant Form</h6>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                            
+                            <form th:action="@{/admin/plants}" th:object="${plantDto}" method="post">
+                                <div class="form-group">
+                                    <label for="name">Plant Name *</label>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="category">Category *</label>
+                                    <input type="text" class="form-control" id="category" th:field="*{category}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea class="form-control" id="description" th:field="*{description}"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="imageUrl">Image URL</label>
+                                    <input type="text" class="form-control" id="imageUrl" th:field="*{imageUrl}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="growthDays">Growth Days *</label>
+                                    <input type="number" class="form-control" id="growthDays" th:field="*{growthDays}" required min="1">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <a href="/admin/plants" class="btn btn-secondary">Cancel</a>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <th:block th:replace="~{includes/admin/footer}" />
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <th:block th:replace="~{includes/admin/logout}" />
+
+    <!-- Script-->
+    <th:block th:replace="~{includes/admin/script}" />
+
+</body>
+
+</html>

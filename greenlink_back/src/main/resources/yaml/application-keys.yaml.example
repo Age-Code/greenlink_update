@@ -1,0 +1,48 @@
+# application-keys.yaml 템플릿
+#
+# 이 파일을 같은 디렉터리에 application-keys.yaml로 복사한 뒤 실제 값을 채운다.
+# application.yaml이 optional import로 읽어들이며, 실제 파일은 .gitignore 대상이다.
+# 각 항목은 같은 이름의 환경변수로 대신 주입할 수도 있다.
+#   jwt.secret                  -> JWT_SECRET
+#   greenlink.ai.worker-secret  -> GREENLINK_AI_WORKER_SECRET
+#   spring.datasource.url       -> SPRING_DATASOURCE_URL
+#
+# 값이 하나라도 없으면 애플리케이션은 기동 단계에서 실패한다.
+
+spring:
+  datasource:
+    url: jdbc:mysql://<db-host>:3306/<database>?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: <db-username>
+    password: <db-password>
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+jwt:
+  # HS256 서명 키. 최소 32바이트 이상의 무작위 문자열을 사용한다.
+  #   openssl rand -base64 48
+  secret: <jwt-signing-secret>
+
+greenlink:
+  ai:
+    # Ubuntu AI Worker가 X-AI-Worker-Secret 헤더로 보내는 값과 반드시 동일해야 한다.
+    #   openssl rand -hex 32
+    worker-secret: <ai-worker-shared-secret>
+
+oauth:
+  kakao:
+    client-id: <kakao-rest-api-key>
+    client-secret: <kakao-client-secret>
+    token-uri: https://kauth.kakao.com/oauth/token
+    user-info-uri: https://kapi.kakao.com/v2/user/me
+  google:
+    client-id: <google-client-id>
+    client-secret: <google-client-secret>
+    token-uri: https://oauth2.googleapis.com/token
+    user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+cloud:
+  aws:
+    # S3 자격 증명은 여기에 두지 않는다.
+    # 실행 환경의 AWS 기본 credential provider chain(instance role 등)을 사용한다.
+    region: <aws-region>
+    s3:
+      bucket: <s3-bucket-name>

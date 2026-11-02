@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+    <div id="wrapper">
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <div class="container-fluid">
+                    <h1 class="h3 mb-2 text-gray-800">IoT Management</h1>
+                    
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                            <h6 class="m-0 font-weight-bold text-primary">IoT Device List</h6>
+                            <a href="/admin/iot/new" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
+                                    class="fas fa-plus fa-sm text-white-50"></i> Register Device</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Device Name</th>
+                                        <th>Type</th>
+                                        <th>Device Key</th>
+                                        <th>GrowSpace ID</th>
+                                        <th>UserPlant ID</th>
+                                        <th>Active</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:each="device : ${devices}">
+                                        <td th:text="${device.id}"></td>
+                                        <td th:text="${device.deviceName}"></td>
+                                        <td th:text="${device.deviceType}"></td>
+                                        <td th:text="${device.deviceKey != null && device.deviceKey.length() > 4 ? device.deviceKey.substring(0, 4) + '••••' : '••••'}"></td>
+                                        <td th:text="${device.growSpace != null ? device.growSpace.id : ''}"></td>
+                                        <td th:text="${device.userPlant != null ? device.userPlant.id : ''}"></td>
+                                        <td th:text="${device.active}"></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:replace="~{includes/admin/footer}" />
+        </div>
+    </div>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+    <th:block th:replace="~{includes/admin/logout}" />
+    <th:block th:replace="~{includes/admin/script}" />
+    
+    <script src="/sb-admin/vendor/datatables/jquery.dataTables.min.js"></script>
+    <script src="/sb-admin/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#dataTable').DataTable();
+        });
+    </script>
+</body>
+</html>

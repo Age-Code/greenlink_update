@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그린링크 식물 도감</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Nunito+Sans:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/greenlink/theme-portal.css">
+</head>
+<body>
+<div class="gl-shell gl-fade">
+    <header class="gl-topbar">
+        <div class="gl-brand">
+            <div class="gl-brand-mark">🌿</div>
+            <span>GreenLink</span>
+        </div>
+        <nav class="gl-nav">
+            <a href="/home">내 식물</a>
+            <a href="/plants" class="active">식물 도감</a>
+            <a href="/quests">퀘스트</a>
+            <a href="/home#inventoryCard">인벤토리</a>
+            <a href="/home#calendarCard">캘린더</a>
+        </nav>
+        <div class="gl-icons">
+            <button class="gl-btn alt" onclick="location.href='/home'">대시보드</button>
+        </div>
+    </header>
+
+    <section class="gl-grid" style="grid-template-columns: 1fr 380px;">
+        <section class="gl-card">
+            <div class="gl-card-head">
+                <h2 class="gl-title">식물 도감</h2>
+                <div class="gl-sub" id="totalCount">식물 0개</div>
+            </div>
+
+            <div class="gl-row-2" style="margin-bottom:12px;">
+                <input id="searchName" class="gl-input" placeholder="식물 이름 검색 (예: 바질)">
+                <select id="difficultyFilter" class="gl-select">
+                    <option value="">난이도 전체</option>
+                    <option value="EASY">EASY</option>
+                    <option value="NORMAL">NORMAL</option>
+                    <option value="HARD">HARD</option>
+                </select>
+            </div>
+
+            <div id="listNotice" class="gl-note" style="display:none; margin-bottom:12px;"></div>
+            <div id="plantGrid" class="gl-list"></div>
+        </section>
+
+        <aside class="gl-card">
+            <h2 class="gl-title">상세 정보</h2>
+            <div id="detailEmpty" class="gl-empty" style="margin-top:12px;">왼쪽 목록에서 식물을 선택하면 상세 정보가 표시됩니다.</div>
+            <div id="detailBox" style="display:none;">
+                <div id="detailImage" class="gl-feature-image" style="height:220px; margin-top:10px;">🌱</div>
+                <div style="margin-top:12px; display:grid; gap:10px;">
+                    <h3 class="gl-title" id="detailName"></h3>
+                    <div class="gl-sub" id="detailCategory"></div>
+                    <div class="gl-pill" id="detailDifficulty"></div>
+                    <div class="gl-sub" id="detailDescription"></div>
+                    <div class="gl-metric-grid">
+                        <div class="gl-metric">
+                            <div class="gl-sub">성장 기간</div>
+                            <strong id="detailGrowth"></strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">광량</div>
+                            <strong id="detailLight"></strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">권장 급수</div>
+                            <strong id="detailWater"></strong>
+                        </div>
+                    </div>
+                    <div class="gl-metric-grid">
+                        <div class="gl-metric">
+                            <div class="gl-sub">별명</div>
+                            <strong id="detailUnlock"></strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">사진 상태</div>
+                            <strong id="detailImageState"></strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">도감 번호</div>
+                            <strong id="detailPlantId"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </section>
+</div>
+
+<script>
+let fullList = [];
+
+function authHeaders() {
+    const token = localStorage.getItem("Authorization");
+    return token ? { Authorization: token } : {};
+}
+
+async function request(url) {
+    const res = await fetch(url, { headers: authHeaders() });
+    const contentType = res.headers.get("content-type") || "";
+    const body = contentType.includes("application/json") ? await res.json() : null;
+    return { ok: res.ok, body };
+}
+
+function cardEmoji(index) {
+    const emojis = ['🌻', '🌵', '🍀', '🌱', '🪴', '🌼', '🌿'];
+    return emojis[index % emojis.length];
+}
+
+function setListNotice(message, isError = false) {
+    const notice = document.getElementById("listNotice");
+    if (!message) {
+        notice.style.display = "none";
+        notice.textContent = "";
+        notice.className = "gl-note";
+        return;
+    }
+
+    notice.style.display = "block";
+    notice.textContent = message;
+    notice.className = isError ? "gl-note error" : "gl-note";
+}
+
+function filterList(list) {
+    const keyword = document.getElementById("searchName").value.trim().toLowerCase();
+    const difficulty = document.getElementById("difficultyFilter").value;
+
+    return list.filter(item => {
+        const matchesKeyword = !keyword || `${item.name || ""}`.toLowerCase().includes(keyword);
+        const matchesDifficulty = !difficulty || item.difficulty === difficulty;
+        return matchesKeyword && matchesDifficulty;
+    });
+}
+
+function renderList(list) {
+    const grid = document.getElementById('plantGrid');
+    document.getElementById('totalCount').textContent = `식물 ${list.length}개`;
+
+    if (!list.length) {
+        grid.innerHTML = '<div class="gl-empty">검색 결과가 없습니다.</div>';
+        return;
+    }
+
+    grid.innerHTML = '';
+    list.forEach((plant, idx) => {
+        const row = document.createElement('article');
+        row.className = 'gl-plant-item';
+        row.style.cursor = 'pointer';
+        row.onclick = () => detailPlant(plant.plantId);
+        row.innerHTML = `
+            <div class="gl-plant-thumb">${plant.imageUrl ? `<img src="${plant.imageUrl}" alt="${plant.name || 'plant'}">` : cardEmoji(idx)}</div>
+            <div>
+                <p class="gl-plant-name">${plant.name || '-'}</p>
+                <div class="gl-sub">${plant.category || '분류 없음'} · ${plant.difficulty || '-'}</div>
+            </div>
+            <div style="font-size:22px;color:#839186;">›</div>
+        `;
+        grid.appendChild(row);
+    });
+}
+
+async function loadPlants() {
+    setListNotice("");
+    const resp = await request('/api/plant');
+
+    if (!resp.ok || !Array.isArray(resp.body)) {
+        fullList = [];
+        renderList(fullList);
+        setListNotice("로그인 후 식물 목록을 확인할 수 있습니다.", true);
+        return;
+    }
+
+    fullList = resp.body;
+    renderList(filterList(fullList));
+}
+
+async function detailPlant(plantId) {
+    const plantResp = await request(`/api/plant/${plantId}`);
+    if (!plantResp.ok || !plantResp.body) return;
+
+    const plant = plantResp.body;
+
+    document.getElementById('detailEmpty').style.display = 'none';
+    document.getElementById('detailBox').style.display = 'block';
+    document.getElementById('detailName').textContent = plant.name || '-';
+    document.getElementById('detailCategory').textContent = `카테고리: ${plant.category || '-'}`;
+    document.getElementById('detailDifficulty').textContent = plant.difficulty || '-';
+    document.getElementById('detailDescription').textContent = plant.description || '설명이 아직 등록되지 않았습니다.';
+    document.getElementById('detailGrowth').textContent = plant.growthPeriodDays ? `${plant.growthPeriodDays}일` : '-';
+    document.getElementById('detailLight').textContent = plant.lightPref || '-';
+    document.getElementById('detailWater').textContent = plant.waterPreMlPerDay ? `${plant.waterPreMlPerDay}ml/day` : '-';
+    document.getElementById('detailUnlock').textContent = plant.unlockCondition || '조건 없음';
+    document.getElementById('detailImageState').textContent = plant.imageUrl ? '등록됨' : '기본 아이콘';
+    document.getElementById('detailPlantId').textContent = String(plantId);
+
+    const detailImage = document.getElementById('detailImage');
+    const imageUrl = plant.imageUrl;
+    detailImage.innerHTML = imageUrl ? `<img src="${imageUrl}" alt="${plant.name || 'plant'}">` : '🌱';
+}
+
+document.getElementById('searchName').addEventListener('input', () => {
+    renderList(filterList(fullList));
+});
+
+document.getElementById('difficultyFilter').addEventListener('change', () => {
+    renderList(filterList(fullList));
+});
+
+loadPlants();
+</script>
+</body>
+</html>

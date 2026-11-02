@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head -->
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topper -->
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <!-- Page Heading -->
+                    <h1 class="h3 mb-2 text-gray-800">Notice Detail</h1>
+                    <p class="mb-4">Notice Detail example</p>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Id</label>
+                        <div class="col-sm-1">
+                            <input type="text" class="input_param form-control" id="notice_id" name="id" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">Deleted</label>
+                        <div class="col-sm-1">
+                            <input type="text" class="input_param input_required form-control" id="notice_deleted" name="deleted" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">CreatedAt</label>
+                        <div class="col-sm-2">
+                            <input type="text" class="input_param input_required form-control" id="notice_created_at" name="createdAt" readonly/>
+                        </div>
+                        <label class="col-sm-1 col-form-label">ModifiedAt</label>
+                        <div class="col-sm-2">
+                            <input type="text" class="input_param form-control" id="notice_modified_at" name="modifiedAt" readonly/>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Title</label>
+                        <div class="col-sm-6">
+                            <input type="text" class="input_param input_required form-control" id="notice_title" name="title" required/>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="col-sm-1 col-form-label">Content</label>
+                        <div class="col-sm-6">
+                            <div id="div_content_editor" style="background-color: #FFFFFF"></div>
+                            <input type="hidden" class="input_param" id="div_content_editor_html" name="content" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group row mt-6">
+                        <div class="col-sm-8 offset-sm-8 text-end">
+                            <button class="btn btn-primary m-1" id="update_notice_btn" onclick="update_notice()">Update</button>
+                            <button class="btn btn-danger m-1" id="delete_notice_btn" onclick="delete_notice()">Delete</button>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <th:block th:replace="~{includes/admin/footer}" />
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Logout Modal-->
+    <th:block th:replace="~{includes/admin/logout}" />
+
+    <!-- Script-->
+    <th:block th:replace="~{includes/admin/script}" />
+
+    <!-- Function-->
+    <script>
+        let notice_id = window.location.pathname.split("/").pop();
+
+        $(document).ready(function(){
+            detail_notice();
+        });
+
+        function detail_notice() {
+            $.ajax({
+                url: "/api/notice/detail",
+                method: "GET",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:{
+                    id: Number(notice_id)
+                },
+                success: (data, status, xhr)=>{
+                    $("#notice_id").val(data["id"]);
+                    $("#notice_deleted").val(data["deleted"]);
+                    $("#notice_created_at").val(data["createdAt"]);
+                    $("#notice_modified_at").val(data["modifiedAt"]);
+                    $("#notice_title").val(data["title"]);
+                    $("#div_content_editor").html(data["content"]);
+                    $("#div_content_editor_html").val(data["content"]);
+                    init_editor();
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function init_editor(){
+            let tempId = "div_content_editor";
+            quilljsediterInit(tempId);
+        }
+        function quilljsediterInit(tempId){
+            var option = {
+                modules: {
+                    toolbar: [
+                        [{header: [1,2,false] }],
+                        ['bold', 'italic', 'underline'],
+                        ['image', 'code-block'],
+                        [{ list: 'ordered' }, { list: 'bullet' }]
+                    ]
+                },
+                placeholder: 'Enter content',
+                theme: 'snow'
+            };
+
+            let quill = null;
+            quill = new Quill('#' + tempId, option);
+            quill.on('text-change', function() {
+                document.getElementById(tempId + "_html").value = quill.root.innerHTML;
+            });
+            quill.getModule('toolbar').addHandler('image', function () {
+                selectLocalImage(quill);
+            });
+        }
+        function selectLocalImage(obj_quill) {
+            const fileInput = document.createElement('input');
+            fileInput.setAttribute('type', 'file');
+            console.log("input.type " + fileInput.type);
+
+            fileInput.click();
+
+            fileInput.addEventListener("change", function () {  // change 이벤트로 input 값이 바뀌면 실행
+                uploadFile(fileInput, obj_quill);
+            });
+        }
+        function uploadFile(fileInput, obj_quill) {
+            // 파일 담기
+            let tempFile = null;
+            let inputFile = fileInput;
+            if (inputFile.files.length > 0) {
+                tempFile = inputFile.files[0];
+            }
+            let fileData = new FormData();
+            fileData.append("file", tempFile);
+
+            $.ajax({
+                url: "/api/notice/uploadFile",
+                type: "POST",
+                data: fileData ,
+                cache : false,
+                contentType : false,
+                processData : false,
+                success: (data, status, xhr)=>{
+                    let range = obj_quill.getSelection(); // 사용자가 선택한 에디터 범위
+                    obj_quill.insertEmbed(range.index, 'image', "/image/" + data);
+                },
+                error: (data)=>{
+                    alert("error")
+                },
+            });
+        }
+
+        function update_notice(){
+            const data = {
+                id: Number(notice_id),
+                title: $('#notice_title').val(),
+                content: $('#div_content_editor_html').val()
+            };
+
+            $.ajax({
+                url: "/api/notice",
+                method: "PUT",
+                contentType: 'application/json; charset=utf-8',
+                headers:{
+                    "Authorization" : localStorage.getItem("Authorization")
+                },
+                data:JSON.stringify(data),
+                success: (data, status, xhr)=>{
+                    alert(JSON.stringify(status));
+                },
+                error: (data, status, xhr) => {
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+        function delete_notice(){
+            $.ajax({
+                url: "/api/notice",
+                method: "DELETE",
+                contentType: 'application/json; charset=utf-8',
+                headers: {
+                    "Authorization": localStorage.getItem("Authorization")
+                },
+                data: JSON.stringify({
+                    id: Number(notice_id)
+                }),
+                success: (data, status, xhr)=>{
+                    alert(status);
+                    location.href = "/admin/notice/list";
+                },
+                error: (data, status, xhr)=>{
+                    alert(JSON.stringify(data));
+                }
+            });
+        }
+
+    </script>
+
+</body>
+
+</html>

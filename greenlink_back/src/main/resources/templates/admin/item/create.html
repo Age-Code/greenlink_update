@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+    <div id="wrapper">
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <div class="container-fluid">
+                    <h1 class="h3 mb-2 text-gray-800">Create Item</h1>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Item Form</h6>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                            
+                            <form th:action="@{/admin/items}" th:object="${itemDto}" method="post">
+                                <div class="form-group">
+                                    <label for="name">Item Name *</label>
+                                    <input type="text" class="form-control" id="name" th:field="*{name}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="itemType">Item Type *</label>
+                                    <select class="form-control" id="itemType" th:field="*{itemType}" required>
+                                        <option th:each="type : ${itemTypes}" th:value="${type}" th:text="${type.name()}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea class="form-control" id="description" th:field="*{description}"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="imageUrl">Image URL</label>
+                                    <input type="text" class="form-control" id="imageUrl" th:field="*{imageUrl}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="linkedPlantId">Linked Plant ID (Required for SEED)</label>
+                                    <input type="number" class="form-control" id="linkedPlantId" th:field="*{linkedPlantId}">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <a href="/admin/items" class="btn btn-secondary">Cancel</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:replace="~{includes/admin/footer}" />
+        </div>
+    </div>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+    <th:block th:replace="~{includes/admin/logout}" />
+    <th:block th:replace="~{includes/admin/script}" />
+</body>
+</html>

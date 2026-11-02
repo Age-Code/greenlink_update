@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{includes/admin/head}" />
+
+<body id="page-top">
+    <div id="wrapper">
+        <th:block th:replace="~{includes/admin/sidebar}" />
+
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+                <th:block th:replace="~{includes/admin/topper}" />
+
+                <div class="container-fluid">
+                    <h1 class="h3 mb-2 text-gray-800">Register IoT Device</h1>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">IoT Device Form</h6>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+                            
+                            <form th:action="@{/admin/iot}" th:object="${iotDto}" method="post">
+                                <div class="form-group">
+                                    <label for="deviceName">Device Name *</label>
+                                    <input type="text" class="form-control" id="deviceName" th:field="*{deviceName}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="deviceType">Device Type *</label>
+                                    <select class="form-control" id="deviceType" th:field="*{deviceType}" required>
+                                        <option th:each="type : ${deviceTypes}" th:value="${type}" th:text="${type.name()}"></option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="deviceKey">Device Key *</label>
+                                    <input type="text" class="form-control" id="deviceKey" th:field="*{deviceKey}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="growSpaceId">GrowSpace ID (Required for RASPBERRY_PI)</label>
+                                    <input type="number" class="form-control" id="growSpaceId" th:field="*{growSpaceId}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userPlantId">UserPlant ID (Required for ESP32)</label>
+                                    <input type="number" class="form-control" id="userPlantId" th:field="*{userPlantId}">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                                <a href="/admin/iot" class="btn btn-secondary">Cancel</a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:replace="~{includes/admin/footer}" />
+        </div>
+    </div>
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+    <th:block th:replace="~{includes/admin/logout}" />
+    <th:block th:replace="~{includes/admin/script}" />
+</body>
+</html>

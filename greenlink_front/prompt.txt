@@ -1,0 +1,1015 @@
+프롬프트
+즉, GreenLink의 프론트는 이렇게 정의하면 됩니다.
+GreenLink는 식물 키우기를 어렵고 부담스러운 일로 느끼는 사용자를 위해,
+관리·기록·퀘스트를 귀엽고 따뜻한 경험으로 바꿔주는 반려식물 돌봄 앱이다.
+앱의 첫인상은 “기능이 많은 스마트팜 앱”이 아니라,
+“매일 잠깐 들어와 내 식물 친구를 확인하고, 작은 보상을 받는 편안한 공간”이어야 한다.
+
+아래는 Flutter 코드 생성 AI에게 그대로 줄 수 있는 기획·디자인·API 기반 프롬프트입니다.
+
+1. 전체 앱 테마 프롬프트
+Flutter로 GreenLink라는 반려식물 돌봄 앱의 라이트 테마 UI를 만들어줘.
+앱의 핵심 목표는 식물 키우기의 귀찮고 까다로운 진입장벽을 낮추고, 누구나 쉽고 따뜻하게 식물을 가꿀 수
+있도록 돕는 것이다. 따라서 앱은 기능 중심의 딱딱한 관리 앱처럼 보이면 안 되고, 사용자가 매일 편하게
+들어오고 싶어지는 부드럽고 정이 가는 분위기여야 한다.
+전체 감성은 다음과 같다.
+1. 따뜻한 크림색 배경
+2. 연한 연두색과 부드러운 노란색을 중심으로 한 식물 친화적 색감
+3. 동글동글한 카드 UI
+4. 작은 캐릭터 같은 식물 일러스트
+5. 과한 정보보다 짧고 친근한 문장
+6. 관리 앱보다는 다이어리, 위젯, 반려식물 친구방 같은 느낌
+7. 사용자가 “식물을 관리한다”보다 “오늘 식물 친구를 만나러 왔다”고 느끼게 하는 화면
+라이트 테마 기준 색상은 다음을 사용해줘.
+- background: #F8F5EC 또는 #FAF7EF
+- cardBackground: #FFFFFF
+- primaryGreen: #9FD978
+- softGreen: #DDF2C6
+- deepGreen: #5E8F46
+- softYellow: #F3E46B
+- warmBrown: #9A7868
+- textPrimary: #3D3A34
+- textSecondary: #8B877D
+- borderSoft: #EEE8DA
+디자인 스타일은 다음을 지켜줘.
+- 모든 카드는 borderRadius 20~28 정도로 둥글게
+
+프롬프트
+
+1
+
+- 그림자는 아주 약하게, 과한 그림자 금지
+- 버튼은 알약 모양 pill shape
+- 텍스트는 짧고 부드럽게
+- 아이콘은 선이 얇고 둥근 느낌
+- 화면 여백을 넉넉하게
+- 하단 탭바는 둥근 플로팅 탭바 형태
+- 전체적으로 아기자기하지만 유치하지 않게
+- 다크 테마는 만들지 말고 라이트 테마만 먼저 구현
+앱의 주요 하단 탭은 다음 4개로 구성해줘.
+1. 홈
+2. 내 식물
+3. 도감
+4. 퀘스트
+추가 화면으로 인벤토리, 출석, 설정, 로그인/회원가입 화면이 있다.
+API 응답은 모두 다음 공통 형식을 따른다.
+{
+"success": true,
+"message": "메시지",
+"data": {}
+}
+인증이 필요한 API는 Authorization 헤더에 Bearer 토큰을 넣는다.
+Authorization: Bearer {accessToken}
+Admin 기능은 앱에 만들지 않는다.
+
+2. 앱 전체 화면 구조
+
+프론트에서 필요한 화면은 이렇게 잡으면 됩니다.
+1. 스플래시 / 온보딩
+2. 로그인
+3. 회원가입
+4. 홈
+5. 내 식물 목록
+6. 내 식물 상세
+7. 씨앗 심기
+8. 인벤토리
+9. 출석
+10. 퀘스트
+11. 도감 목록
+12. 도감 상세
+13. 설정 / 내 계정
+
+프롬프트
+
+2
+
+Admin API는 프론트 앱에 넣지 않습니다.
+
+3. 로그인 / 회원가입 화면 프롬프트
+사용 API
+POST /api/auth/signup
+POST /api/auth/login
+
+화면 요소
+로그인 화면:
+- 앱 로고 또는 작은 새싹 캐릭터
+- “오늘도 식물 친구를 만나러 가볼까요?” 같은 문구
+- 이메일 입력
+- 비밀번호 입력
+- 로그인 버튼
+- 회원가입 이동 버튼
+회원가입 화면:
+- 이메일 입력
+- 비밀번호 입력
+- 닉네임 입력
+- 회원가입 버튼
+- 회원가입 완료 후 로그인 화면으로 이동
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 로그인/회원가입 화면을 만들어줘.
+디자인은 따뜻한 라이트 테마이고, 배경은 크림색 계열로 해줘. 화면 상단에는 귀여운 새싹 캐릭터나 작은
+화분 일러스트 느낌의 영역을 넣고, 전체적으로 부담 없는 반려식물 앱처럼 보여야 한다.
+로그인 화면에는 다음 요소가 있어야 한다.
+1. 앱 이름 GreenLink
+2. 부드러운 안내 문구: “오늘도 식물 친구를 만나러 가볼까요?”
+3. 이메일 입력 필드
+4. 비밀번호 입력 필드
+5. 로그인 버튼
+6. 회원가입 화면으로 이동하는 텍스트 버튼
+회원가입 화면에는 다음 요소가 있어야 한다.
+
+프롬프트
+
+3
+
+1. 이메일 입력 필드
+2. 비밀번호 입력 필드
+3. 닉네임 입력 필드
+4. 회원가입 버튼
+5. 로그인 화면으로 돌아가기 버튼
+API는 다음을 사용한다.
+회원가입:
+POST /api/auth/signup
+Request:
+{
+"email": "user@example.com",
+"password": "1234",
+"nickname": "그린링크유저"
+}
+Response:
+data.userId
+data.email
+data.nickname
+data.grantedItems
+로그인:
+POST /api/auth/login
+Request:
+{
+"email": "user@example.com",
+"password": "1234"
+}
+Response:
+data.accessToken
+data.user.userId
+data.user.email
+data.user.nickname
+data.user.role
+로그인 성공 시 accessToken을 저장하고, 이후 인증 API 요청에는 Authorization: Bearer {accessTo
+ken} 헤더를 사용하도록 구조를 잡아줘.
+에러가 발생하면 response.message를 화면 아래쪽에 부드러운 토스트나 작은 안내 박스로 보여줘.
+
+4. 홈 화면 프롬프트
+사용 API
+
+프롬프트
+
+4
+
+GET /api/home
+Authorization: Bearer {accessToken}
+
+화면 요소
+홈 화면:
+- 상단 월 표시 또는 인사말
+- 사용자 닉네임
+- 대표 식물 캐릭터
+- 식물 이름
+- 성장 상태
+- 남은 성장 일수
+- 수확 가능 상태라면 수확 버튼
+- 오늘 할 일 카드
+- 인벤토리/출석/퀘스트로 이동하는 작은 카드
+- 하단 탭바
+
+API 응답 기준
+{
+"user": {
+"userId": 1,
+"nickname": "그린링크유저"
+},
+"mainUserPlant": {
+"userPlantId": 1,
+"plantName": "바질",
+"nickname": "나의 바질",
+"status": "GROWING",
+"imageUrl": "/images/plants/basil.png",
+"plantedAt": "2026-04-25T18:40:00",
+"daysAfterPlanting": 0,
+"remainingDays": 14
+}
+}
+
+코드 생성용 프롬프트
+
+프롬프트
+
+5
+
+Flutter로 GreenLink의 홈 화면을 만들어줘.
+홈 화면은 앱의 첫인상을 결정하는 가장 중요한 화면이다. 기능을 많이 보여주기보다, 사용자가 자신의 식물
+친구를 만나는 느낌이 들어야 한다.
+디자인 방향:
+- 배경은 따뜻한 크림색
+- 중앙에는 대표 식물 캐릭터를 크게 배치
+- 식물은 단순 이미지가 아니라 친구처럼 느껴지게 카드 안에 배치
+- 텍스트는 짧고 다정하게
+- “오늘도 잘 자라고 있어요” 같은 문구 사용
+- 카드와 버튼은 둥글게
+- 하단에는 둥근 플로팅 탭바 배치
+사용 API:
+GET /api/home
+Authorization: Bearer {accessToken}
+응답 data 구조:
+user.userId
+user.nickname
+mainUserPlant.userPlantId
+mainUserPlant.plantName
+mainUserPlant.nickname
+mainUserPlant.status
+mainUserPlant.imageUrl
+mainUserPlant.plantedAt
+mainUserPlant.daysAfterPlanting
+mainUserPlant.remainingDays
+화면에 표시할 요소:
+1. 상단 인사말
+- “안녕, {nickname}”
+- “오늘도 식물 친구를 살펴볼까요?”
+2. 대표 식물 영역
+- mainUserPlant가 null이면:
+“아직 함께하는 식물이 없어요”
+“씨앗을 심고 첫 식물 친구를 만나보세요”
+“씨앗 심기” 버튼 표시
+- mainUserPlant가 있으면:
+식물 이미지
+식물 닉네임
+plantName
+status 표시
+remainingDays 표시
+3. 상태별 문구
+- GROWING: “조금씩 자라고 있어요”
+- HARVESTABLE: “수확할 준비가 되었어요”
+- HARVESTED: “함께한 시간이 도감에 기록됐어요”
+4. 수확 버튼
+
+프롬프트
+
+6
+
+- status가 HARVESTABLE이면 “수확하기” 버튼 표시
+- 클릭 시 POST /api/user-plants/{userPlantId}/harvest 호출
+5. 작은 바로가기 카드
+- 내 식물
+- 인벤토리
+- 출석
+- 퀘스트
+6. 하단 탭바
+- 홈
+- 내 식물
+- 도감
+- 퀘스트
+전체적으로 마이모리 앱처럼 따뜻하고 감성적인 분위기지만, GreenLink의 식물 돌봄 목적에 맞게 더 식물
+중심으로 구성해줘.
+
+5. 내 식물 목록 화면 프롬프트
+사용 API
+GET /api/user-plants
+GET /api/user-plants?status=GROWING
+GET /api/user-plants?status=HARVESTABLE
+GET /api/user-plants?status=HARVESTED
+
+화면 요소
+- 상단 제목: 내 식물
+- 상태 필터 칩
+- 식물 카드 목록
+- 식물 이미지
+- 식물 닉네임
+- 식물 종 이름
+- 상태
+- 남은 일수
+- 씨앗 심기 버튼
+
+코드 생성용 프롬프트
+
+프롬프트
+
+7
+
+Flutter로 GreenLink의 내 식물 목록 화면을 만들어줘.
+이 화면은 사용자가 자신이 키우는 식물 친구들을 한눈에 보는 공간이다. 관리 리스트처럼 딱딱하게 보이지
+않게, 작은 식물 친구들이 모여 있는 정원처럼 보여야 한다.
+사용 API:
+GET /api/user-plants
+Authorization: Bearer {accessToken}
+선택 필터:
+GET /api/user-plants?status=GROWING
+GET /api/user-plants?status=HARVESTABLE
+GET /api/user-plants?status=HARVESTED
+응답 data 배열의 각 항목:
+userPlantId
+plantId
+plantName
+nickname
+status
+plantedAt
+daysAfterPlanting
+remainingDays
+imageUrl
+화면 요소:
+1. 상단 제목
+- “내 식물”
+- 부제: “함께 자라는 식물 친구들이에요”
+2. 상태 필터 칩
+- 전체
+- 성장 중
+- 수확 가능
+- 수확 완료
+3. 식물 카드
+각 카드에는 다음을 보여준다.
+- 식물 이미지
+- nickname
+- plantName
+- status
+- remainingDays
+4. status 표시 문구
+- GROWING: “자라는 중”
+- HARVESTABLE: “수확 가능”
+- HARVESTED: “수확 완료”
+5. 빈 상태
+식물이 없으면:
+- “아직 키우는 식물이 없어요”
+- “씨앗을 심고 첫 식물 친구를 만나보세요”
+- “씨앗 심기” 버튼
+
+프롬프트
+
+8
+
+6. Floating Action Button
+- 씨앗 심기 화면으로 이동
+카드는 둥글고 부드럽게 만들고, 식물 이미지는 너무 현실적이기보다 귀여운 캐릭터처럼 보이게 배치해줘.
+
+6. 식물 상세 화면 프롬프트
+사용 API
+GET /api/user-plants/{userPlantId}
+PATCH /api/user-plants/{userPlantId}
+POST /api/user-plants/{userPlantId}/harvest
+POST /api/user-items/{userItemId}/equip-pot
+POST /api/user-items/{userItemId}/unequip-pot
+POST /api/user-items/{userItemId}/use-nutrient
+
+화면 요소
+- 식물 이미지 크게
+- 식물 닉네임
+- 이름 수정 버튼
+- 성장 상태
+- 심은 날짜
+- 경과 일수
+- 남은 일수
+- 장착 화분
+- 수확 버튼
+- 영양제 사용 버튼
+- 화분 바꾸기 버튼
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 식물 상세 화면을 만들어줘.
+이 화면은 특정 식물 친구의 방 같은 느낌이어야 한다. 사용자가 기능을 조작한다기보다, 식물을 살펴보고
+돌보는 느낌이 들어야 한다.
+사용 API:
+GET /api/user-plants/{userPlantId}
+PATCH /api/user-plants/{userPlantId}
+POST /api/user-plants/{userPlantId}/harvest
+
+프롬프트
+
+9
+
+POST /api/user-items/{userItemId}/equip-pot
+POST /api/user-items/{userItemId}/unequip-pot
+POST /api/user-items/{userItemId}/use-nutrient
+상세 조회 응답 data:
+userPlantId
+plantId
+plantName
+nickname
+imageUrl
+status
+plantedAt
+harvestedAt
+daysAfterPlanting
+remainingDays
+equippedPot
+equippedPot:
+userItemId
+itemId
+name
+imageUrl
+화면 요소:
+1. 상단
+- 뒤로가기 버튼
+- 식물 닉네임
+- 이름 수정 아이콘
+2. 메인 식물 영역
+- 식물 이미지를 크게 표시
+- 말풍선 형태로 상태 문구 표시
+GROWING: “나 조금씩 자라고 있어!”
+HARVESTABLE: “이제 수확할 수 있어!”
+HARVESTED: “도감에 기록됐어!”
+3. 성장 정보 카드
+- plantName
+- status
+- plantedAt
+- daysAfterPlanting
+- remainingDays
+4. 장착 화분 카드
+- equippedPot이 null이면 “아직 화분이 없어요”
+- 있으면 화분 이미지와 이름 표시
+- “화분 바꾸기” 버튼
+5. 돌봄 버튼
+- 영양제 사용
+- 화분 장착/해제
+- 수확하기
+6. 수확 버튼 조건
+- status == HARVESTABLE일 때 활성화
+
+프롬프트
+
+10
+
+- status == GROWING이면 비활성화하고 “아직 조금 더 자라야 해요” 표시
+- status == HARVESTED이면 수확 버튼 숨김
+디자인은 전체적으로 따뜻한 크림색 배경, 둥근 카드, 부드러운 초록색 버튼을 사용해줘.
+
+7. 씨앗 심기 화면 프롬프트
+사용 API
+GET /api/user-items?itemType=SEED&status=OWNED
+POST /api/user-plants
+
+화면 요소
+- 사용 가능한 씨앗 목록
+- 씨앗 이미지
+- 씨앗 이름
+- 연결된 식물 정보
+- 식물 닉네임 입력
+- 심기 버튼
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 씨앗 심기 화면을 만들어줘.
+이 화면은 사용자가 새로운 식물 친구를 처음 만나는 화면이다. 단순히 아이템을 소비하는 느낌이 아니라,
+씨앗을 골라 새 친구를 맞이하는 따뜻한 느낌이어야 한다.
+사용 API:
+GET /api/user-items?itemType=SEED&status=OWNED
+POST /api/user-plants
+GET /api/user-items 응답에서 사용할 값:
+itemId
+name
+itemType
+description
+imageUrl
+linkedPlantId
+items[].userItemId
+items[].status
+
+프롬프트
+
+11
+
+POST /api/user-plants Request:
+{
+"userItemId": 1,
+"nickname": "나의 바질"
+}
+화면 요소:
+1. 상단 제목
+- “씨앗 심기”
+- 부제: “새로운 식물 친구를 만나볼까요?”
+2. 보유 씨앗 목록
+- status == OWNED인 userItem만 선택 가능
+- 씨앗 이미지
+- 씨앗 이름
+- 보유 개수
+3. 선택된 씨앗 카드
+- 선택된 씨앗을 강조 표시
+- linkedPlantId가 있으면 해당 식물이 자라난다는 안내 문구 표시
+4. 식물 이름 입력
+- placeholder: “식물 친구 이름을 지어주세요”
+5. 심기 버튼
+- 씨앗 선택 + 이름 입력 후 활성화
+- 클릭 시 POST /api/user-plants 호출
+6. 빈 상태
+사용 가능한 씨앗이 없으면:
+- “지금 심을 수 있는 씨앗이 없어요”
+- “퀘스트 보상으로 씨앗을 얻어보세요”
+디자인은 씨앗을 고르는 카드가 부드럽고 귀엽게 보이도록 해줘.
+
+8. 인벤토리 화면 프롬프트
+사용 API
+GET /api/user-items
+GET /api/user-items?itemType=SEED
+GET /api/user-items?itemType=POT
+GET /api/user-items?itemType=NUTRIENT
+
+화면 요소
+
+프롬프트
+
+12
+
+- 아이템 타입 필터
+- 아이템 카드
+- ownedCount
+- usableCount
+- usedCount
+- 개별 userItem 상태
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 인벤토리 화면을 만들어줘.
+인벤토리는 게임 아이템 창처럼 복잡하게 보이기보다, 내가 가진 작은 식물 도구들을 정리해둔 서랍 같은 느
+낌이어야 한다.
+사용 API:
+GET /api/user-items
+GET /api/user-items?itemType=SEED
+GET /api/user-items?itemType=POT
+GET /api/user-items?itemType=NUTRIENT
+응답 data 배열:
+itemId
+name
+itemType
+description
+imageUrl
+linkedPlantId
+ownedCount
+usableCount
+usedCount
+items[]
+items 배열:
+userItemId
+status
+userPlantId
+createdAt
+화면 요소:
+1. 상단 제목
+- “인벤토리”
+- 부제: “식물 친구를 위한 작은 도구들이에요”
+2. 필터 칩
+- 전체
+- 씨앗
+- 화분
+- 영양제
+3. 아이템 카드
+
+프롬프트
+
+13
+
+- 이미지
+- 이름
+- 설명
+- ownedCount
+- usableCount
+- usedCount
+4. 상태 표시
+- OWNED: 사용 가능
+- EQUIPPED: 장착 중
+- USED: 사용 완료
+5. 아이템 타입별 안내
+- SEED: “심을 수 있어요”
+- POT: “식물에게 장착할 수 있어요”
+- NUTRIENT: “식물에게 사용할 수 있어요”
+6. 빈 상태
+- “아직 가진 아이템이 없어요”
+- “출석과 퀘스트로 아이템을 모아보세요”
+라이트 테마로 부드럽고 정리된 카드 UI를 만들어줘.
+
+9. 출석 화면 프롬프트
+사용 API
+POST /api/attends/today
+GET /api/attends
+GET /api/attends?year=2026&month=4
+
+화면 요소
+- 월 선택
+- 출석 달력
+- 출석한 날짜 표시
+- 현재 연속 출석
+- 이번 달 출석 수
+- 오늘 출석 버튼
+
+코드 생성용 프롬프트
+
+프롬프트
+
+14
+
+Flutter로 GreenLink의 출석 화면을 만들어줘.
+출석 화면은 체크리스트가 아니라, 식물 친구를 만나러 온 날들이 달력에 귀엽게 남는 느낌이어야 한다. 마
+이모리 앱처럼 감성적인 달력 느낌을 참고하되, GreenLink에 맞게 새싹이나 잎 아이콘으로 출석일을 표시
+해줘.
+사용 API:
+POST /api/attends/today
+GET /api/attends
+GET /api/attends?year=2026&month=4
+GET /api/attends 응답 data:
+year
+month
+totalAttendCount
+currentStreakCount
+attends[]
+attends 배열:
+attendDate
+streakCount
+화면 요소:
+1. 상단 월 선택
+- “2026년 4월”
+- 이전 달 / 다음 달 버튼
+2. 출석 달력
+- 출석한 날짜는 작은 잎 또는 새싹 아이콘으로 표시
+- 오늘 날짜는 부드러운 초록색 원으로 강조
+3. 출석 요약 카드
+- 이번 달 출석 일수
+- 현재 연속 출석 일수
+4. 오늘 출석 버튼
+- “오늘 식물 친구 만나기”
+- 클릭 시 POST /api/attends/today 호출
+5. 중복 출석 시
+- response.message인 “오늘은 이미 출석했습니다.”를 부드럽게 표시
+6. 하단 문구
+- “작은 방문이 식물 친구에게 큰 힘이 돼요”
+전체적으로 달력은 너무 딱딱하지 않게, 여백이 넓고 감성적인 느낌으로 만들어줘.
+
+10. 퀘스트 화면 프롬프트
+프롬프트
+
+15
+
+사용 API
+GET /api/user-quests
+GET /api/user-quests?status=ACHIEVABLE
+POST /api/user-quests/{userQuestId}/reward
+
+화면 요소
+- 퀘스트 상태 필터
+- 퀘스트 카드
+- 진행도 바
+- 보상 아이템
+- 보상 받기 버튼
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 퀘스트 화면을 만들어줘.
+퀘스트 화면은 미션 압박감이 아니라, 식물과 함께하는 작은 약속 목록처럼 보여야 한다. 사용자가 부담 없
+이 “오늘 이것만 해볼까?”라고 느끼게 만들어줘.
+사용 API:
+GET /api/user-quests
+GET /api/user-quests?questType=DAILY
+GET /api/user-quests?status=ACHIEVABLE
+POST /api/user-quests/{userQuestId}/reward
+응답 data 배열:
+userQuestId
+questId
+title
+questType
+targetType
+targetValue
+progressValue
+status
+startedAt
+expiredAt
+상태:
+IN_PROGRESS
+ACHIEVABLE
+COMPLETED
+EXPIRED
+화면 요소:
+
+프롬프트
+
+16
+
+1. 상단 제목
+- “퀘스트”
+- 부제: “식물 친구와 함께하는 작은 약속이에요”
+2. 필터 칩
+- 전체
+- 진행 중
+- 보상 가능
+- 완료
+3. 퀘스트 카드
+- title
+- questType
+- progressValue / targetValue
+- 진행도 바
+- status 배지
+4. 상태별 버튼
+- IN_PROGRESS: “진행 중”
+- ACHIEVABLE: “보상 받기” 버튼 활성화
+- COMPLETED: “완료”
+- EXPIRED: “기간 만료”
+5. 보상 받기
+- POST /api/user-quests/{userQuestId}/reward 호출
+- 성공 시 생성된 아이템을 작은 모달로 표시
+- 예: “영양제 1개를 받았어요”
+디자인은 둥근 카드, 부드러운 진행도 바, 작은 보상 아이콘을 사용해서 따뜻하게 만들어줘.
+
+11. 도감 화면 프롬프트
+사용 API
+GET /api/collections
+GET /api/collections/{plantId}
+
+화면 요소
+- 식물 도감 그리드
+- 수확한 식물은 밝게 표시
+- 미수확 식물은 흐리게 표시
+- 수확 횟수
+- 최초 수확일
+
+프롬프트
+
+17
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 식물 도감 화면을 만들어줘.
+도감은 성과를 딱딱하게 기록하는 화면이 아니라, 사용자가 지금까지 만난 식물 친구들을 모아보는 따뜻한
+앨범처럼 보여야 한다.
+사용 API:
+GET /api/collections
+GET /api/collections/{plantId}
+GET /api/collections 응답 data:
+plantId
+name
+category
+imageUrl
+collected
+harvestCount
+firstHarvestedAt
+화면 요소:
+1. 상단 제목
+- “식물 도감”
+- 부제: “함께한 식물 친구들이 기록돼요”
+2. 식물 그리드
+- 2열 또는 3열 카드
+- collected == true이면 밝고 선명하게 표시
+- collected == false이면 흐리게 잠금 처리
+3. 식물 카드
+- imageUrl
+- name
+- category
+- harvestCount
+- collected 상태
+4. 미수집 식물 표현
+- 흐린 실루엣
+- “아직 만나지 못했어요”
+5. 카드 클릭 시 도감 상세 화면 이동
+도감은 게임 수집 화면처럼 보이되, 경쟁적이지 않고 따뜻한 앨범 느낌으로 만들어줘.
+
+12. 도감 상세 화면 프롬프트
+프롬프트
+
+18
+
+Flutter로 GreenLink의 도감 상세 화면을 만들어줘.
+사용 API:
+GET /api/collections/{plantId}
+응답 data:
+plantId
+name
+category
+description
+imageUrl
+collected
+harvestCount
+harvestedPlants[]
+harvestedPlants:
+userPlantId
+nickname
+imageUrl
+plantedAt
+harvestedAt
+화면 요소:
+1. 식물 이미지 크게 표시
+2. 식물 이름
+3. category
+4. description
+5. collected 상태
+6. harvestCount
+7. first harvested 정보가 있으면 표시
+8. harvestedPlants 목록
+- 사용자가 수확한 개별 식물 이름
+- plantedAt
+- harvestedAt
+collected == false이면:
+- “아직 이 식물과 함께한 기록이 없어요”
+- “씨앗을 얻어 키워보세요”
+전체 디자인은 도감 카드와 앨범 페이지 느낌으로 만들어줘.
+
+13. 설정 / 계정 화면 프롬프트
+사용 API
+GET /api/users/me
+
+프롬프트
+
+19
+
+PATCH /api/users/me
+
+화면 요소
+- 사용자 닉네임
+- 이메일
+- 역할
+- 닉네임 수정
+- 로그아웃
+
+코드 생성용 프롬프트
+Flutter로 GreenLink의 설정/계정 화면을 만들어줘.
+이 화면은 복잡한 설정 페이지가 아니라, 사용자가 자신의 계정을 조용히 확인하고 필요한 것만 수정할 수
+있는 편안한 공간이어야 한다.
+사용 API:
+GET /api/users/me
+PATCH /api/users/me
+GET /api/users/me 응답 data:
+userId
+email
+nickname
+role
+createdAt
+PATCH /api/users/me Request:
+{
+"nickname": "새닉네임"
+}
+화면 요소:
+1. 상단 제목
+- “계정”
+2. 프로필 카드
+- 둥근 식물 또는 얼굴 캐릭터 아이콘
+- nickname
+- email
+3. 계정 정보
+- userId는 화면에 직접 보여주지 않아도 됨
+- email
+- role
+- createdAt
+
+프롬프트
+
+20
+
+4. 닉네임 수정 버튼
+- 누르면 bottom sheet 또는 dialog로 닉네임 입력
+- 저장 시 PATCH /api/users/me 호출
+5. 로그아웃 버튼
+- 저장된 accessToken 삭제
+- 로그인 화면으로 이동
+전체 디자인은 어둡거나 딱딱하지 않게, 부드러운 크림색 배경과 흰색 카드로 구성해줘.
+
+14. 전체 Flutter 개발용 통합 프롬프트
+아래는 코드 생성 AI에게 한 번에 줄 수 있는 긴 통합 프롬프트입니다.
+Flutter로 GreenLink 앱의 라이트 테마 UI와 기본 화면 구조를 만들어줘.
+GreenLink는 식물 키우기의 귀찮고 까다로운 진입장벽을 낮춰주는 반려식물 돌봄 앱이다. 기능 중심의 스
+마트팜 앱처럼 딱딱하게 보이면 안 되고, 사용자가 매일 편하게 들어와 자신의 식물 친구를 살펴보고 작은
+보상을 받는 따뜻한 앱처럼 보여야 한다.
+디자인 감성:
+- 마이모리 앱처럼 부드럽고 감성적인 카드 UI
+- 따뜻한 크림색 배경
+- 연두색, 노란색, 브라운 계열 포인트
+- 둥근 카드와 pill 버튼
+- 식물 캐릭터 중심
+- 부담 없는 문구
+- 관리 앱보다 다이어리, 반려식물 방, 작은 정원 같은 느낌
+라이트 테마 색상:
+background: #F8F5EC
+cardBackground: #FFFFFF
+primaryGreen: #9FD978
+softGreen: #DDF2C6
+deepGreen: #5E8F46
+softYellow: #F3E46B
+warmBrown: #9A7868
+textPrimary: #3D3A34
+textSecondary: #8B877D
+borderSoft: #EEE8DA
+하단 탭:
+1. 홈
+2. 내 식물
+3. 도감
+4. 퀘스트
+추가 화면:
+- 로그인
+- 회원가입
+- 씨앗 심기
+
+프롬프트
+
+21
+
+- 인벤토리
+- 출석
+- 식물 상세
+- 도감 상세
+- 설정
+인증:
+로그인 성공 시 accessToken을 저장하고, 인증이 필요한 API에는 다음 헤더를 넣는다.
+Authorization: Bearer {accessToken}
+공통 응답:
+{
+"success": true,
+"message": "메시지",
+"data": {}
+}
+Admin 기능은 앱에 만들지 않는다.
+주요 API:
+POST /api/auth/signup
+POST /api/auth/login
+GET /api/home
+GET /api/users/me
+PATCH /api/users/me
+GET /api/user-items
+POST /api/user-items/{userItemId}/equip-pot
+POST /api/user-items/{userItemId}/unequip-pot
+POST /api/user-items/{userItemId}/use-nutrient
+POST /api/user-plants
+GET /api/user-plants
+GET /api/user-plants/{userPlantId}
+PATCH /api/user-plants/{userPlantId}
+POST /api/user-plants/{userPlantId}/harvest
+POST /api/attends/today
+GET /api/attends
+GET /api/user-quests
+POST /api/user-quests/{userQuestId}/reward
+GET /api/collections
+GET /api/collections/{plantId}
+각 화면은 API 데이터 구조에 맞게 모델 클래스를 만들고, 우선 mock data로 화면을 구성해도 된다. 나중
+에 실제 API 연결이 쉽도록 service layer를 분리해줘.
+화면별 요구사항:
+1. 홈 화면
+- GET /api/home 사용
+- user.nickname 표시
+- mainUserPlant가 null이면 씨앗 심기 유도
+- mainUserPlant가 있으면 식물 이미지, nickname, plantName, status, remainingDays 표시
+- status가 HARVESTABLE이면 수확하기 버튼 표시
+2. 내 식물 화면
+- GET /api/user-plants 사용
+- 상태 필터: 전체, GROWING, HARVESTABLE, HARVESTED
+
+프롬프트
+
+22
+
+- 식물 카드에 imageUrl, nickname, plantName, status, remainingDays 표시
+- 씨앗 심기 버튼 제공
+3. 식물 상세 화면
+- GET /api/user-plants/{userPlantId}
+- 식물 이미지 크게 표시
+- nickname, plantName, status, plantedAt, daysAfterPlanting, remainingDays 표시
+- equippedPot 표시
+- 영양제 사용, 화분 장착, 수확 버튼 제공
+4. 씨앗 심기 화면
+- GET /api/user-items?itemType=SEED&status=OWNED
+- 사용 가능한 씨앗 선택
+- 식물 닉네임 입력
+- POST /api/user-plants 호출
+5. 인벤토리 화면
+- GET /api/user-items
+- 필터: 전체, SEED, POT, NUTRIENT
+- ownedCount, usableCount, usedCount 표시
+- 아이템 타입과 상태를 보기 쉽게 표시
+6. 출석 화면
+- GET /api/attends
+- POST /api/attends/today
+- 달력 UI
+- 출석한 날짜는 새싹 아이콘으로 표시
+- currentStreakCount, totalAttendCount 표시
+7. 퀘스트 화면
+- GET /api/user-quests
+- 상태 필터: 전체, IN_PROGRESS, ACHIEVABLE, COMPLETED, EXPIRED
+- progressValue / targetValue 진행바 표시
+- ACHIEVABLE이면 보상 받기 버튼 표시
+- POST /api/user-quests/{userQuestId}/reward 호출
+8. 도감 화면
+- GET /api/collections
+- collected true 식물은 밝게 표시
+- collected false 식물은 흐리게 표시
+- harvestCount 표시
+9. 도감 상세 화면
+- GET /api/collections/{plantId}
+- 식물 설명, 수확 횟수, 수확한 개별 식물 목록 표시
+10. 설정 화면
+- GET /api/users/me
+- PATCH /api/users/me
+- 닉네임 수정
+- 로그아웃
+코드는 Flutter 기준으로 유지보수하기 쉽게 작성해줘.
+- theme 파일 분리
+- model 파일 분리
+- api service 파일 분리
+
+프롬프트
+
+23
+
+- screen 파일 분리
+- widget 파일 분리
+- 반복되는 카드 UI는 공통 위젯으로 분리
+전체 분위기는 귀엽고 따뜻하지만 너무 유치하지 않게, 실제 서비스 출시 가능한 수준으로 정돈해줘.
+
+프롬프트
+
+24
+
+

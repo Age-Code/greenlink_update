@@ -1,0 +1,49 @@
+spring:
+  config:
+    import:
+      - optional:classpath:/yaml/application-keys.yaml
+
+  jpa:
+    hibernate:
+      # 운영에서는 JPA_DDL_AUTO=validate로 두고 스키마 변경은 별도로 관리한다.
+      # 현재 저장소에는 migration 도구가 없어 기본값은 update를 유지한다.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    # SQL 로그는 운영에서 기본 비활성. 필요할 때만 JPA_SHOW_SQL=true로 켠다.
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: true
+
+  sql:
+    init:
+      mode: never
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+file:
+  upload-dir: uploads
+
+cloud:
+  aws:
+    region: ${AWS_REGION:ap-northeast-2}
+    s3:
+      bucket: ${S3_BUCKET:}
+
+# jwt.secret과 greenlink.ai.worker-secret은 소스에 두지 않는다.
+# 환경변수(JWT_SECRET, GREENLINK_AI_WORKER_SECRET) 또는
+# yaml/application-keys.yaml로 주입하며, 없으면 기동 시점에 실패한다.
+# 필요한 항목은 yaml/application-keys.yaml.example 참고.
+jwt:
+  access-token-validity-ms: ${JWT_ACCESS_TOKEN_VALIDITY_MS:86400000}
+
+# 기본 데이터 부트스트랩 — DefaultDataInitializer
+#   seed-default-data: 빈 DB에 기본 식물(바질)과 가입 지급 아이템(바질 씨앗, 기본 화분)을 없을 때만 생성
+#   admin-email/admin-password: ADMIN이 한 명도 없을 때만 최초 관리자 생성(비밀번호 12자 이상).
+#     환경변수 GREENLINK_BOOTSTRAP_ADMIN_EMAIL / GREENLINK_BOOTSTRAP_ADMIN_PASSWORD로 주입하고,
+#     관리자 생성 후에는 제거한다.
+greenlink:
+  bootstrap:
+    seed-default-data: ${GREENLINK_BOOTSTRAP_SEED_DEFAULT_DATA:true}

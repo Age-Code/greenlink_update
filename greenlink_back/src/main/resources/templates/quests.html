@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그린링크 퀘스트</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Nunito+Sans:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/greenlink/theme-portal.css">
+</head>
+<body>
+<div class="gl-shell gl-fade">
+    <header class="gl-topbar">
+        <div class="gl-brand">
+            <div class="gl-brand-mark">🌿</div>
+            <span>GreenLink</span>
+        </div>
+        <nav class="gl-nav">
+            <a href="/home">내 식물</a>
+            <a href="/plants">식물 도감</a>
+            <a href="/quests" class="active">퀘스트</a>
+            <a href="/home#inventoryCard">인벤토리</a>
+            <a href="/home#calendarCard">캘린더</a>
+        </nav>
+        <div class="gl-icons">
+            <button class="gl-btn alt" onclick="location.href='/home'">대시보드</button>
+        </div>
+    </header>
+
+    <section class="gl-grid" style="grid-template-columns: 1fr 380px;">
+        <section class="gl-card">
+            <div class="gl-card-head">
+                <div>
+                    <h2 class="gl-title">전체 퀘스트</h2>
+                    <div class="gl-sub">진행 중인 퀘스트와 전체 보상 구성을 한 화면에서 확인합니다.</div>
+                </div>
+                <div class="gl-sub" id="questCount">퀘스트 0개</div>
+            </div>
+
+            <div class="gl-row-2" style="margin-bottom:12px;">
+                <input id="searchQuest" class="gl-input" placeholder="퀘스트 이름 검색">
+                <select id="typeFilter" class="gl-select">
+                    <option value="">종류 전체</option>
+                    <option value="DAILY">일일 퀘스트</option>
+                    <option value="WEEKLY">주간 퀘스트</option>
+                    <option value="ACHIEVEMENT">업적 퀘스트</option>
+                </select>
+            </div>
+
+            <div id="questNotice" class="gl-note" style="display:none; margin-bottom:12px;"></div>
+            <div id="questList" class="gl-list">
+                <div class="gl-empty">로그인 후 퀘스트 목록을 확인할 수 있습니다.</div>
+            </div>
+        </section>
+
+        <aside class="gl-card">
+            <h2 class="gl-title">퀘스트 상세</h2>
+            <div id="questDetailEmpty" class="gl-empty" style="margin-top:12px;">왼쪽 목록에서 퀘스트를 선택하면 상세 정보가 표시됩니다.</div>
+            <div id="questDetailBox" style="display:none;">
+                <div class="gl-feature-image" style="height:220px; margin-top:10px;" id="questHero">📋</div>
+                <div style="margin-top:12px; display:grid; gap:10px;">
+                    <h3 class="gl-title" id="questTitle"></h3>
+                    <div class="gl-sub" id="questDescription"></div>
+                    <div class="gl-actions">
+                        <div class="gl-pill" id="questState">진행 정보 없음</div>
+                        <div class="gl-pill alt" id="questTypeLabel">-</div>
+                    </div>
+                    <div class="gl-progress">
+                        <div class="gl-progress-bar" id="questProgressBar" style="width:0%;"></div>
+                    </div>
+                    <div class="gl-metric-grid">
+                        <div class="gl-metric">
+                            <div class="gl-sub">목표</div>
+                            <strong id="questTarget">-</strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">진행도</div>
+                            <strong id="questProgress">-</strong>
+                        </div>
+                        <div class="gl-metric">
+                            <div class="gl-sub">보상</div>
+                            <strong id="questReward">-</strong>
+                        </div>
+                    </div>
+                    <div id="questClaimNotice" class="gl-note">진행 중인 퀘스트를 선택하면 보상 수령 가능 여부가 표시됩니다.</div>
+                    <button class="gl-btn" id="claimQuestBtn" type="button" style="display:none;" onclick="claimQuest()">보상 받기</button>
+                </div>
+            </div>
+        </aside>
+    </section>
+</div>
+
+<script>
+let questCatalog = [];
+let userQuestMap = new Map();
+let selectedQuestId = null;
+let selectedUserQuestId = null;
+
+function authHeaders() {
+    const token = localStorage.getItem("Authorization");
+    return token ? { Authorization: token } : {};
+}
+
+async function apiRequest(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...authHeaders(),
+            ...(options.headers || {})
+        }
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    const body = contentType.includes("application/json") ? await response.json() : null;
+    return { ok: response.ok, body, status: response.status };
+}
+
+function setQuestNotice(message, isError = false) {
+    const notice = document.getElementById("questNotice");
+    if (!message) {
+        notice.style.display = "none";
+        notice.textContent = "";
+        notice.className = "gl-note";
+        return;
+    }
+
+    notice.style.display = "block";
+    notice.textContent = message;
+    notice.className = isError ? "gl-note error" : "gl-note";
+}
+
+function formatQuestType(type) {
+    const map = {
+        DAILY: "일일 퀘스트",
+        WEEKLY: "주간 퀘스트",
+        ACHIEVEMENT: "업적 퀘스트"
+    };
+    return map[type] || type || "-";
+}
+
+function formatTargetType(targetType) {
+    const map = {
+        ATTEND: "출석",
+        WATER_ACTION: "물 주기",
+        HARVEST: "수확",
+        ATTEND_STREAK: "연속 출석"
+    };
+    return map[targetType] || targetType || "-";
+}
+
+function formatQuestState(state) {
+    const map = {
+        ONGOING: "진행 중",
+        COMPLETED: "완료 가능",
+        CLAIMED: "수령 완료"
+    };
+    return map[state] || "진행 정보 없음";
+}
+
+function questStateClass(state) {
+    if (state === "COMPLETED") return "gl-pill warn";
+    if (state === "CLAIMED") return "gl-pill done";
+    if (state === "ONGOING") return "gl-pill idle";
+    return "gl-pill";
+}
+
+function questEmoji(targetType) {
+    const map = {
+        ATTEND: "📅",
+        WATER_ACTION: "💧",
+        HARVEST: "🌾",
+        ATTEND_STREAK: "🔥"
+    };
+    return map[targetType] || "📋";
+}
+
+function getQuestPercent(progress, targetValue) {
+    if (!targetValue || targetValue <= 0) return 0;
+    return Math.min(100, Math.round((progress / targetValue) * 100));
+}
+
+function resetQuestDetail() {
+    selectedQuestId = null;
+    selectedUserQuestId = null;
+    document.getElementById("questDetailEmpty").style.display = "block";
+    document.getElementById("questDetailBox").style.display = "none";
+}
+
+function filterQuestList(list) {
+    const keyword = document.getElementById("searchQuest").value.trim().toLowerCase();
+    const type = document.getElementById("typeFilter").value;
+
+    return list.filter(quest => {
+        const matchesKeyword = !keyword || `${quest.title || ""}`.toLowerCase().includes(keyword);
+        const matchesType = !type || quest.type === type;
+        return matchesKeyword && matchesType;
+    });
+}
+
+function renderQuestList(list) {
+    const questListNode = document.getElementById("questList");
+    document.getElementById("questCount").textContent = `퀘스트 ${list.length}개`;
+
+    if (!list.length) {
+        questListNode.innerHTML = '<div class="gl-empty">표시할 퀘스트가 없습니다.</div>';
+        resetQuestDetail();
+        return;
+    }
+
+    questListNode.innerHTML = "";
+    list.forEach(quest => {
+        const userQuest = userQuestMap.get(quest.questId);
+        const progress = userQuest?.progress ?? 0;
+        const targetValue = userQuest?.targetValue ?? quest.targetValue ?? 0;
+        const percent = getQuestPercent(progress, targetValue);
+        const state = userQuest?.state;
+
+        const item = document.createElement("article");
+        item.className = "gl-quest-item";
+        item.style.cursor = "pointer";
+        item.onclick = () => loadQuestDetail(quest.questId);
+        item.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="gl-quick-emoji">${questEmoji(quest.targetType)}</div>
+                    <div>
+                        <p class="gl-quest-title">${quest.title || "-"}</p>
+                        <div class="gl-sub">${formatQuestType(quest.type)} · ${formatTargetType(quest.targetType)}</div>
+                    </div>
+                </div>
+                <div class="${questStateClass(state)}">${formatQuestState(state)}</div>
+            </div>
+            <div class="gl-progress">
+                <div class="gl-progress-bar" style="width:${percent}%;"></div>
+            </div>
+            <div class="gl-sub">${progress}/${targetValue || "-"}</div>
+        `;
+        questListNode.appendChild(item);
+    });
+}
+
+async function loadQuestList() {
+    setQuestNotice("");
+
+    const [questResponse, userQuestResponse] = await Promise.all([
+        apiRequest("/api/quest"),
+        apiRequest("/api/userQuest")
+    ]);
+
+    if (!questResponse.ok || !Array.isArray(questResponse.body)) {
+        questCatalog = [];
+        userQuestMap = new Map();
+        renderQuestList(questCatalog);
+        setQuestNotice("로그인 후 전체 퀘스트를 확인할 수 있습니다.", true);
+        resetQuestDetail();
+        return;
+    }
+
+    questCatalog = questResponse.body;
+    userQuestMap = new Map();
+
+    if (userQuestResponse.ok && Array.isArray(userQuestResponse.body)) {
+        userQuestResponse.body.forEach(userQuest => {
+            userQuestMap.set(userQuest.questId, userQuest);
+        });
+    } else {
+        setQuestNotice("진행 상태를 불러오지 못해 전체 퀘스트만 표시합니다.", false);
+    }
+
+    const filteredList = filterQuestList(questCatalog);
+    renderQuestList(filteredList);
+
+    if (filteredList.length) {
+        loadQuestDetail(filteredList[0].questId);
+    }
+}
+
+async function loadQuestDetail(questId) {
+    selectedQuestId = questId;
+    const userQuest = userQuestMap.get(questId);
+    selectedUserQuestId = userQuest?.userQuestId || null;
+
+    const requests = [apiRequest(`/api/quest/${questId}`)];
+    if (selectedUserQuestId) {
+        requests.push(apiRequest(`/api/userQuest/${selectedUserQuestId}`));
+    }
+
+    const responses = await Promise.all(requests);
+    const questResponse = responses[0];
+    const userQuestResponse = responses[1];
+
+    if (!questResponse.ok || !questResponse.body) {
+        return;
+    }
+
+    const quest = questResponse.body;
+    const userQuestDetail = userQuestResponse?.ok ? userQuestResponse.body : null;
+    const progress = userQuestDetail?.progress ?? userQuest?.progress ?? 0;
+    const targetValue = userQuestDetail?.targetValue ?? quest.targetValue ?? 0;
+    const percent = getQuestPercent(progress, targetValue);
+    const state = userQuestDetail?.state ?? userQuest?.state ?? null;
+
+    document.getElementById("questDetailEmpty").style.display = "none";
+    document.getElementById("questDetailBox").style.display = "block";
+    document.getElementById("questHero").textContent = questEmoji(quest.targetType);
+    document.getElementById("questTitle").textContent = quest.title || "-";
+    document.getElementById("questDescription").textContent = quest.description || quest.Description || "설명 정보가 아직 없습니다.";
+    document.getElementById("questState").textContent = formatQuestState(state);
+    document.getElementById("questState").className = questStateClass(state);
+    document.getElementById("questTypeLabel").textContent = formatQuestType(quest.type);
+    document.getElementById("questTypeLabel").className = "gl-pill";
+    document.getElementById("questProgressBar").style.width = `${percent}%`;
+    document.getElementById("questTarget").textContent = `${formatTargetType(quest.targetType)} ${quest.targetValue}회`;
+    document.getElementById("questProgress").textContent = selectedUserQuestId ? `${progress} / ${targetValue}` : "진행 정보 없음";
+    document.getElementById("questReward").textContent = quest.rewardItem?.name || "보상 없음";
+
+    const claimButton = document.getElementById("claimQuestBtn");
+    const claimNotice = document.getElementById("questClaimNotice");
+    if (!selectedUserQuestId) {
+        claimButton.style.display = "none";
+        claimNotice.textContent = "현재 계정의 진행 정보가 없는 퀘스트입니다.";
+        claimNotice.className = "gl-note";
+    } else if (state === "COMPLETED") {
+        claimButton.style.display = "inline-flex";
+        claimNotice.textContent = "보상 수령이 가능합니다.";
+        claimNotice.className = "gl-note";
+    } else if (state === "CLAIMED") {
+        claimButton.style.display = "none";
+        claimNotice.textContent = "이미 보상을 수령한 퀘스트입니다.";
+        claimNotice.className = "gl-note";
+    } else {
+        claimButton.style.display = "none";
+        claimNotice.textContent = "목표를 달성하면 여기서 보상을 받을 수 있습니다.";
+        claimNotice.className = "gl-note";
+    }
+}
+
+async function claimQuest() {
+    if (!selectedUserQuestId || !selectedQuestId) {
+        return;
+    }
+
+    const response = await apiRequest(`/api/userQuest/${selectedUserQuestId}/claim`, {
+        method: "POST"
+    });
+
+    if (!response.ok || !response.body) {
+        document.getElementById("questClaimNotice").textContent = "보상 수령에 실패했습니다.";
+        document.getElementById("questClaimNotice").className = "gl-note error";
+        return;
+    }
+
+    document.getElementById("questClaimNotice").textContent = `보상을 받았습니다. 아이템 번호: ${response.body.reward?.itemId || "-"}`;
+    document.getElementById("questClaimNotice").className = "gl-note";
+    await loadQuestList();
+    await loadQuestDetail(selectedQuestId);
+}
+
+document.getElementById("searchQuest").addEventListener("input", () => {
+    const filteredList = filterQuestList(questCatalog);
+    renderQuestList(filteredList);
+    if (filteredList.length) {
+        loadQuestDetail(filteredList[0].questId);
+    }
+});
+
+document.getElementById("typeFilter").addEventListener("change", () => {
+    const filteredList = filterQuestList(questCatalog);
+    renderQuestList(filteredList);
+    if (filteredList.length) {
+        loadQuestDetail(filteredList[0].questId);
+    }
+});
+
+loadQuestList();
+</script>
+</body>
+</html>
