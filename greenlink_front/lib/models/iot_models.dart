@@ -13,6 +13,8 @@ class IotLatestStatus {
   final SoilData? soil;
   final PlantImageData? latestImage;
   final WateringGuard? watering;
+  final LightState? light; // 마지막으로 성공한 조명 명령 기준 (기록 없으면 null)
+  final List<CommandSummary> recentCommands;
 
   IotLatestStatus({
     required this.userPlantId,
@@ -21,6 +23,8 @@ class IotLatestStatus {
     this.soil,
     this.latestImage,
     this.watering,
+    this.light,
+    this.recentCommands = const [],
   });
 
   // JSON 응답을 모델로 변환
@@ -40,7 +44,26 @@ class IotLatestStatus {
         watering: json['watering'] != null
             ? WateringGuard.fromJson(json['watering'])
             : null,
+        light: json['light'] != null ? LightState.fromJson(json['light']) : null,
+        recentCommands: json['recentCommands'] is List
+            ? (json['recentCommands'] as List)
+                  .whereType<Map<String, dynamic>>()
+                  .map(CommandSummary.fromJson)
+                  .toList()
+            : const [],
       );
+
+  // 가장 최근 센서 측정 시각 — 환경/토양 중 늦은 쪽
+  DateTime? get lastMeasuredAt {
+    final times = [environment?.measuredAt, soil?.measuredAt]
+        .whereType<String>()
+        .map(DateTime.tryParse)
+        .whereType<DateTime>()
+        .toList();
+    if (times.isEmpty) return null;
+    times.sort();
+    return times.last;
+  }
 
   // 물 부족 여부 — 서버가 내려준 기준을 우선 사용한다.
   bool get isWaterShortage {
@@ -261,4 +284,99 @@ int? _toNullableInt(dynamic value) {
 List<String> _toStringList(dynamic value) {
   if (value is! List) return [];
   return value.map((e) => e.toString()).toList();
+}
+
+// 조명 상태 — 마지막으로 성공한 LIGHT_ON/LIGHT_OFF 명령 기준
+class LightState {
+  final bool on;
+  final String? changedAt;
+
+  LightState({required this.on, this.changedAt});
+
+  factory LightState.fromJson(Map<String, dynamic> json) =>
+      LightState(on: json['on'] == true, changedAt: json['changedAt']);
+}
+
+// 최근 장치 명령 요약
+class CommandSummary {
+  final int? commandId;
+  final String commandType; // WATER, LIGHT_ON, LIGHT_OFF, SENSOR_REFRESH
+  final String commandStatus; // PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED
+  final String? requestedAt;
+  final String? completedAt;
+  final String? resultMessage;
+
+  CommandSummary({
+    this.commandId,
+    required this.commandType,
+    required this.commandStatus,
+    this.requestedAt,
+    this.completedAt,
+    this.resultMessage,
+  });
+
+  factory CommandSummary.fromJson(Map<String, dynamic> json) => CommandSummary(
+    commandId: _toNullableInt(json['commandId']),
+    commandType: json['commandType']?.toString() ?? '',
+    commandStatus: json['commandStatus']?.toString() ?? '',
+    requestedAt: json['requestedAt']?.toString(),
+    completedAt: json['completedAt']?.toString(),
+    resultMessage: json['resultMessage']?.toString(),
+  );
+
+  bool get isInProgress =>
+      commandStatus == 'PENDING' || commandStatus == 'PROCESSING';
+}
+
+// 센서 기록 — GET /api/user-plants/{id}/iot/history 응답
+class SensorHistory {
+  final int hours;
+  final List<SensorPoint> soilMoisture;
+  final List<SensorPoint> temperature;
+  final List<SensorPoint> humidity;
+  final List<SensorPoint> light;
+
+  SensorHistory({
+    required this.hours,
+    required this.soilMoisture,
+    required this.temperature,
+    required this.humidity,
+    required this.light,
+  });
+
+  factory SensorHistory.fromJson(Map<String, dynamic> json) {
+    final soil = json['soil'] is List ? json['soil'] as List : const [];
+    final env = json['environment'] is List
+        ? json['environment'] as List
+        : const [];
+
+    List<SensorPoint> pick(List source, String key) => source
+        .whereType<Map<String, dynamic>>()
+        .map((e) => SensorPoint.tryParse(e['measuredAt'], e[key]))
+        .whereType<SensorPoint>()
+        .toList();
+
+    return SensorHistory(
+      hours: _toNullableInt(json['hours']) ?? 24,
+      soilMoisture: pick(soil, 'soilMoisturePercent'),
+      temperature: pick(env, 'temperature'),
+      humidity: pick(env, 'humidity'),
+      light: pick(env, 'light'),
+    );
+  }
+}
+
+// 그래프 한 점
+class SensorPoint {
+  final DateTime time;
+  final double value;
+
+  const SensorPoint(this.time, this.value);
+
+  static SensorPoint? tryParse(dynamic time, dynamic value) {
+    final parsedTime = time == null ? null : DateTime.tryParse(time.toString());
+    final parsedValue = _toNullableDouble(value);
+    if (parsedTime == null || parsedValue == null) return null;
+    return SensorPoint(parsedTime, parsedValue);
+  }
 }

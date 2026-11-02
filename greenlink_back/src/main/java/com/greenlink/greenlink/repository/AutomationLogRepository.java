@@ -7,9 +7,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 // AutomationLogRepository — JPA 데이터 접근
 public interface AutomationLogRepository extends JpaRepository<AutomationLog, Long> {
+
+    // 같은 SKIP 사유 연속 저장 방지용 — 식물·유형별 마지막 로그
+    Optional<AutomationLog> findTopByUserPlantAndAutomationTypeAndDeletedFalseOrderByIdDesc(
+            UserPlant userPlant,
+            AutomationType automationType
+    );
 
     // 특정 식물의 자동화 로그 최신순 조회
     List<AutomationLog> findByUserPlantAndDeletedFalseOrderByCreatedAtDesc(

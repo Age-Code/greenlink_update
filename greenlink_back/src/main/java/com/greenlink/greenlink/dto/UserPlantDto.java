@@ -43,8 +43,8 @@ public class UserPlantDto {
 
         // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
         public static CreateResDto from(UserPlant userPlant) {
-            LocalDateTime expectedHarvestableAt = userPlant.getPlantedAt()
-                    .plusDays(userPlant.getPlant().getGrowthDays());
+            LocalDateTime expectedHarvestableAt = userPlant.getHarvestableDate()
+                    .atTime(userPlant.getPlantedAt().toLocalTime());
 
             return CreateResDto.builder()
                     .userPlantId(userPlant.getId())

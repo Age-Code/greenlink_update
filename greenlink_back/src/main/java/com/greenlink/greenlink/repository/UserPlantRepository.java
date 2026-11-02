@@ -16,6 +16,9 @@ public interface UserPlantRepository extends JpaRepository<UserPlant, Long> {
     // find All By User And Deleted False 조회 — JPA query method
     List<UserPlant> findAllByUserAndDeletedFalse(User user);
 
+    // 관리자 대시보드 집계
+    long countByStatusInAndDeletedFalse(java.util.Collection<UserPlantStatus> statuses);
+
     // find By Id And User And Deleted False 조회 — JPA query method
     Optional<UserPlant> findByIdAndUserAndDeletedFalse(Long id, User user);
 

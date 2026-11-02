@@ -32,4 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // find All By Deleted False 조회 — JPA query method
     java.util.List<User> findAllByDeletedFalse();
+
+    // 관리자 대시보드 집계
+    long countByDeletedFalse();
 }

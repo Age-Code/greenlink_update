@@ -90,7 +90,7 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
                     children: [
                       const Icon(Icons.info_outline, size: 14, color: AppColors.bodyMuted),
                       const SizedBox(width: 6),
-                      Text('수확 완료 식물은 선택할 수 없어요', style: TextStyle(fontSize: 13, color: AppColors.bodySoft)),
+                      Text('자라는 중인 식물에게만 줄 수 있어요', style: TextStyle(fontSize: 13, color: AppColors.bodySoft)),
                     ],
                   ),
                 ],
@@ -107,7 +107,7 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
                           itemCount: _plants!.length,
                           itemBuilder: (context, index) {
                             final plant = _plants![index];
-                            final bool isDisabled = plant.status == 'HARVESTED';
+                            final bool isDisabled = plant.status != 'GROWING';
                             return Opacity(
                               opacity: isDisabled ? 0.38 : 1.0,
                               child: SelectableUserPlantSummaryCard(
@@ -199,6 +199,15 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
     setState(() { _plants = res.data ?? []; _isLoading = false; });
   }
 
+  // 영양제 결과 문구 — 서버가 돌려준 남은 성장일 기준
+  String _nutrientResultMessage(Map<String, dynamic>? data) {
+    final status = data?['userPlantStatus'];
+    final remainingDays = data?['remainingDays'];
+    if (status == 'HARVESTABLE') return '영양제를 줬어요! 이제 수확할 수 있어요 🌱';
+    if (remainingDays is num) return '영양제를 줬어요! 수확까지 ${remainingDays.toInt()}일 남았어요';
+    return '영양제를 줬어요! 성장 기간이 하루 줄었어요';
+  }
+
   // 아이템 사용 처리
   void _useNutrient() async {
     if (_selectedPlantId == null) return;
@@ -207,9 +216,10 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
     if (!mounted) return;
     setState(() => _isUsing = false);
     if (res.success) {
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       widget.onSuccess();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('영양제를 사용했어요\n식물 친구가 좋아할 거예요')));
+      messenger.showSnackBar(SnackBar(content: Text(_nutrientResultMessage(res.data))));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
     }
@@ -237,7 +247,7 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
                   const SizedBox(height: 20),
                   const Text('어떤 식물에게 줄까요?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.ink)),
                   const SizedBox(height: 4),
-                  const Text('영양제를 줄 식물 친구를 골라주세요', style: TextStyle(fontSize: 14, color: AppColors.bodyMuted)),
+                  const Text('영양제 1개마다 수확까지 남은 기간이 하루 줄어요', style: TextStyle(fontSize: 14, color: AppColors.bodyMuted)),
                   const SizedBox(height: 8),
                   Row(
                     children: [

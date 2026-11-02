@@ -59,6 +59,9 @@ class ApiPaths {
   // 센서 새로고침 경로 생성
   static String iotRefresh(int userPlantId) =>
       '/user-plants/$userPlantId/iot/refresh';
+  // 센서 기록 경로 생성
+  static String iotHistory(int userPlantId, {int hours = 24}) =>
+      '/user-plants/$userPlantId/iot/history?hours=$hours';
   // 물주기 명령 경로 생성
   static String iotWater(int userPlantId) =>
       '/user-plants/$userPlantId/iot/water';

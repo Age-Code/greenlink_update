@@ -17,3 +17,6 @@ __pycache__/
 # AI Worker 처리 중간/결과 이미지
 greenlink_ubuntu/inputs/
 greenlink_ubuntu/outputs/
+
+# Claude Code 로컬 설정
+.claude/settings.local.json

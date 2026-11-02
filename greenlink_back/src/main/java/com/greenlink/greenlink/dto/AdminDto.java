@@ -240,4 +240,73 @@ public class AdminDto {
                     .build();
         }
     }
+
+    // 관리자 대시보드 DTO
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class DashboardDto {
+        private long userCount;
+        private long growingPlantCount;
+        private long harvestedPlantCount;
+        private long deviceCount;
+        private long onlineDeviceCount;
+        private long failedCommandCount24h;
+        private java.util.List<DeviceStatusDto> devices;
+        private java.util.List<CommandRowDto> recentCommands;
+    }
+
+    // 장치 연결 상태 행
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class DeviceStatusDto {
+        private Long deviceId;
+        private String deviceName;
+        private com.greenlink.greenlink.domain.iot.DeviceType deviceType;
+        private Boolean active;
+        private boolean online;
+        private Long growSpaceId;
+        private Long userPlantId;
+        private java.time.LocalDateTime lastConnectedAt;
+
+        public static DeviceStatusDto of(com.greenlink.greenlink.domain.iot.IotDevice device, boolean online) {
+            return DeviceStatusDto.builder()
+                    .deviceId(device.getId())
+                    .deviceName(device.getDeviceName())
+                    .deviceType(device.getDeviceType())
+                    .active(device.getActive())
+                    .online(online)
+                    .growSpaceId(device.getGrowSpace() == null ? null : device.getGrowSpace().getId())
+                    .userPlantId(device.getUserPlant() == null ? null : device.getUserPlant().getId())
+                    .lastConnectedAt(device.getLastConnectedAt())
+                    .build();
+        }
+    }
+
+    // 최근 명령 행
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class CommandRowDto {
+        private Long commandId;
+        private com.greenlink.greenlink.domain.iot.CommandType commandType;
+        private com.greenlink.greenlink.domain.iot.CommandStatus commandStatus;
+        private Long userPlantId;
+        private java.time.LocalDateTime requestedAt;
+        private java.time.LocalDateTime completedAt;
+        private String resultMessage;
+
+        public static CommandRowDto from(com.greenlink.greenlink.domain.iot.DeviceCommand command) {
+            return CommandRowDto.builder()
+                    .commandId(command.getId())
+                    .commandType(command.getCommandType())
+                    .commandStatus(command.getCommandStatus())
+                    .userPlantId(command.getUserPlant() == null ? null : command.getUserPlant().getId())
+                    .requestedAt(command.getRequestedAt())
+                    .completedAt(command.getCompletedAt())
+                    .resultMessage(command.getResultMessage())
+                    .build();
+        }
+    }
 }

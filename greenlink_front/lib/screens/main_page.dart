@@ -16,12 +16,6 @@ import 'quest/quest_page.dart';
 //   3: 퀘스트
 // 탭 전환 시 해당 탭 GlobalKey를 통해 refresh() 호출
 
-// 탭 새로고침 인터페이스
-abstract class RefreshablePage {
-  // 화면 데이터 새로고침
-  void refresh();
-}
-
 final GlobalKey<HomePageState> homePageKey = GlobalKey<HomePageState>();
 final GlobalKey<InventoryPageState> inventoryPageKey =
     GlobalKey<InventoryPageState>();
@@ -95,7 +89,7 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  // 현재 탭 새로고침 — RefreshablePage이면 refresh 호출
+  // 현재 탭 새로고침 — 각 탭 State의 refresh 호출
   void _refreshTab(int index) {
     switch (index) {
       case 0:

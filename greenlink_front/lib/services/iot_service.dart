@@ -34,6 +34,28 @@ class IotService {
     }
   }
 
+  // 센서 기록 조회 API 호출 — 그래프용
+  Future<ApiResponse<SensorHistory>> getSensorHistory(
+    int userPlantId, {
+    int hours = 24,
+  }) async {
+    try {
+      final response = await _client.get(
+        ApiPaths.iotHistory(userPlantId, hours: hours),
+      );
+      return ApiResponse<SensorHistory>.fromJson(
+        response,
+        (data) => SensorHistory.fromJson(data),
+      );
+    } catch (e) {
+      debugPrint('[IotService] ❌ 센서 기록 조회 예외: $e');
+      return ApiResponse<SensorHistory>(
+        success: false,
+        message: '센서 기록을 불러오지 못했어요.',
+      );
+    }
+  }
+
   // 센서 새로고침 요청 API 호출
   Future<ApiResponse<SensorRefreshResponse>> requestSensorRefresh(
     int userPlantId,

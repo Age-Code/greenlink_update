@@ -9,9 +9,7 @@ from api_client import (
     complete_command,
 )
 from config import COMMAND_POLL_INTERVAL_SECONDS
-from relay_control import pump_for_gpio, led_on, led_off, all_off
-from sensor_service import read_all_sensors
-from sensor_uploader import upload_sensor_data_safe
+from relay_control import pump_for_gpio, led_on, led_off, all_off, pump_off
 from water_duration import resolve_water_duration
 
 
@@ -46,6 +44,9 @@ def handle_water_command(command: dict):
             print(f"[COMMAND] gpioPin 없음 실패 보고 중 오류: {e}")
         return
 
+    pumped = False
+    success_message = None
+
     try:
         mark_command_processing(command_id)
         print(f"[COMMAND] PROCESSING 보고 완료: commandId={command_id}")
@@ -56,16 +57,34 @@ def handle_water_command(command: dict):
             gpio_pin=int(gpio_pin),
             seconds=duration_seconds
         )
+        pumped = True
+        success_message = f"급수 완료: GPIO {gpio_pin}, {duration_seconds}초"
 
         complete_command(
             command_id=command_id,
             success=True,
-            result_message=f"급수 완료: GPIO {gpio_pin}, {duration_seconds}초"
+            result_message=success_message
         )
 
         print(f"[COMMAND] SUCCESS 보고 완료: commandId={command_id}")
 
     except Exception as e:
+        pump_off()
+
+        # 물은 이미 줬는데 보고만 실패했다면 FAILED로 남기지 않고 성공 보고를 한 번 더 시도한다.
+        if pumped:
+            print(f"[COMMAND] 급수는 완료됐지만 결과 보고 실패: {e}")
+            try:
+                complete_command(
+                    command_id=command_id,
+                    success=True,
+                    result_message=success_message
+                )
+                print(f"[COMMAND] SUCCESS 재보고 완료: commandId={command_id}")
+            except Exception as report_error:
+                print(f"[COMMAND] SUCCESS 재보고 실패: {report_error}")
+            return
+
         print(f"[COMMAND] 급수 명령 처리 실패: {e}")
 
         try:
@@ -78,8 +97,6 @@ def handle_water_command(command: dict):
 
         except Exception as report_error:
             print(f"[COMMAND] 실패 보고도 실패: {report_error}")
-
-        all_off()
 
 
 # LIGHT 명령 처리 — LIGHT_ON/LIGHT_OFF에 따라 LED 제어
@@ -149,6 +166,10 @@ def handle_sensor_refresh_command(command: dict):
     try:
         mark_command_processing(command_id)
         print(f"[SENSOR_REFRESH] PROCESSING 보고 완료: commandId={command_id}")
+
+        # 센서 모듈은 여기서 불러온다. — I2C/DHT 초기화 실패가 급수·조명 워커 기동까지 막지 않도록
+        from sensor_service import read_all_sensors
+        from sensor_uploader import upload_sensor_data_safe
 
         print("[SENSOR_REFRESH] Raspberry Pi 센서 측정 시작")
         sensor_data = read_all_sensors()
@@ -238,8 +259,9 @@ def run_forever():
                 run_once()
 
             except Exception as e:
+                # 통신 오류로 사용자가 켠 LED까지 끄지 않도록 펌프만 정지한다.
                 print(f"[COMMAND] polling 오류: {e}")
-                all_off()
+                pump_off()
 
             time.sleep(COMMAND_POLL_INTERVAL_SECONDS)
 

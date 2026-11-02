@@ -30,6 +30,12 @@ public class IotAppDto {
         private PlantImageDto latestImage;
         private WateringDto watering;
 
+        // 마지막으로 성공한 조명 명령 기준 상태 — 조명 명령 기록이 없으면 null
+        private LightStateDto light;
+
+        // 최근 장치 명령과 실행 결과 (최신순)
+        private List<CommandSummaryDto> recentCommands;
+
         // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
         public static IotLatestResDto of(
                 Long userPlantId,
@@ -38,7 +44,9 @@ public class IotAppDto {
                 EspSensorData espSensorData,
                 PlantImage latestImage,
                 AiPlantImage latestAiImage,
-                WateringDto watering
+                WateringDto watering,
+                DeviceCommand lastLightCommand,
+                List<DeviceCommand> recentCommands
         ) {
             return IotLatestResDto.builder()
                     .userPlantId(userPlantId)
@@ -47,6 +55,107 @@ public class IotAppDto {
                     .soil(SoilDto.from(espSensorData))
                     .latestImage(PlantImageDto.from(latestImage, latestAiImage))
                     .watering(watering)
+                    .light(LightStateDto.from(lastLightCommand))
+                    .recentCommands(recentCommands.stream().map(CommandSummaryDto::from).toList())
+                    .build();
+        }
+    }
+
+    // 조명 상태 DTO
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LightStateDto {
+        private boolean on;
+        private LocalDateTime changedAt;
+
+        public static LightStateDto from(DeviceCommand command) {
+            if (command == null) {
+                return null;
+            }
+
+            return LightStateDto.builder()
+                    .on(command.getCommandType() == CommandType.LIGHT_ON)
+                    .changedAt(command.getCompletedAt())
+                    .build();
+        }
+    }
+
+    // 명령 이력 요약 DTO — 앱에서 "물 주기 완료/실패" 등을 보여주기 위한 최소 정보
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CommandSummaryDto {
+        private Long commandId;
+        private CommandType commandType;
+        private CommandStatus commandStatus;
+        private LocalDateTime requestedAt;
+        private LocalDateTime completedAt;
+        private String resultMessage;
+
+        public static CommandSummaryDto from(DeviceCommand command) {
+            return CommandSummaryDto.builder()
+                    .commandId(command.getId())
+                    .commandType(command.getCommandType())
+                    .commandStatus(command.getCommandStatus())
+                    .requestedAt(command.getRequestedAt())
+                    .completedAt(command.getCompletedAt())
+                    .resultMessage(command.getResultMessage())
+                    .build();
+        }
+    }
+
+    // 센서 기록 응답 DTO — 앱 그래프용 시계열 (측정 시각 오름차순)
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SensorHistoryResDto {
+        private Long userPlantId;
+        private int hours;
+        private List<SoilPointDto> soil;
+        private List<EnvironmentPointDto> environment;
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SoilPointDto {
+        private LocalDateTime measuredAt;
+        private Double soilMoisturePercent;
+
+        public static SoilPointDto from(EspSensorData data) {
+            return SoilPointDto.builder()
+                    .measuredAt(data.getMeasuredAt())
+                    .soilMoisturePercent(data.getSoilMoisturePercent())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Setter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EnvironmentPointDto {
+        private LocalDateTime measuredAt;
+        private Double temperature;
+        private Double humidity;
+        private Double light;
+
+        public static EnvironmentPointDto from(RaspberrySensorData data) {
+            return EnvironmentPointDto.builder()
+                    .measuredAt(data.getMeasuredAt())
+                    .temperature(data.getTemperature())
+                    .humidity(data.getHumidity())
+                    .light(data.getLight())
                     .build();
         }
     }

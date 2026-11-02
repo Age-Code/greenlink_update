@@ -57,17 +57,6 @@ LOCAL_STREAM_BASE_URL = "http://127.0.0.1:8000"
 FULL_STREAM_URL = f"{LOCAL_STREAM_BASE_URL}/stream.mjpg"
 
 
-# 카메라 이미지 방향 보정
-# 주의:
-# 현재 아침 스냅샷은 /stream.mjpg에서 가져오므로,
-# stream_server.py에서 이미 180도 회전이 적용된 화면을 받는다.
-# 따라서 camera_main.py에서는 별도 회전 처리를 하지 않는다.
-# 아래 값은 기존 camera_service.py 직접 촬영 코드와의 호환용이다.
-
-IMAGE_ROTATE_DEGREES = 180
-IMAGE_FLIP_LEFT_RIGHT = False
-
-
 # 릴레이 GPIO 설정
 # GPIO27 → LED
 # 펌프 → GREENLINK_PUMP_GPIO (기본 22). 배선을 바꾸면 환경변수만 수정한다.

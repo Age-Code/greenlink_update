@@ -66,6 +66,11 @@ def pump_for_gpio(gpio_pin: int, seconds: float):
         set_pump(False)
 
 
+# 펌프만 OFF — 통신 오류 등에서 사용자가 켠 LED 상태는 유지한다.
+def pump_off():
+    pump_relay.off()
+
+
 # 전체 릴레이 OFF — LED/펌프 모두 정지
 def all_off():
     print("[RELAY] 전체 OFF")

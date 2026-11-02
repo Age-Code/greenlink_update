@@ -13,6 +13,8 @@
 > 예전 해바라기/바질 2식물 구성(좌우 crop, 펌프 2개, `/stream/sunflower.mjpg`·`/stream/basil.mjpg`)은 제거되었습니다.
 > * 식물: `GREENLINK_USER_PLANT_ID` 하나. 카메라는 crop 없이 전체 프레임을 스트림·사진으로 사용합니다.
 > * 펌프: `GREENLINK_PUMP_GPIO`(기본 22) 하나. Backend `PumpChannel.gpioPin`과 같은 값이어야 하며, 다른 GPIO의 WATER 명령은 펌프를 켜기 전에 거부됩니다.
+> * 통신 오류가 나면 펌프만 끄고 사용자가 켠 LED는 유지합니다. 급수 후 결과 보고만 실패한 경우 FAILED가 아니라 SUCCESS를 다시 보고합니다. 센서 모듈은 SENSOR_REFRESH 처리 시점에 불러오므로 센서 초기화 실패가 급수·조명을 막지 않습니다.
+> * legacy `camera_service.py`는 삭제되었습니다.
 > * 아래 본문 중 코드 발췌나 crop 설명은 이전 구성 기준일 수 있으니 현재 소스를 우선합니다.
 
 ESP 토양 센서 데이터를 Pi가 중계하는 코드는 확인되지 않습니다. ESP는 별도로 백엔드에 직접 전송합니다. `config.py`에는 백엔드/AI 서버 주소 및 장치 키 종류의 민감 설정이 포함되어 있으므로 실제 값은 문서화하지 않습니다.
@@ -30,7 +32,7 @@ ESP 토양 센서 데이터를 Pi가 중계하는 코드는 확인되지 않습�
 | 온습도 센서 | `board`, `adafruit_dht` | `sensor_service.py` |
 | 조도 센서 | `smbus` | `sensor_service.py` |
 | GPIO 출력 | `gpiozero.OutputDevice` | `relay_control.py` |
-| 카메라 | `picamera2` | `stream_server.py`; `camera_service.py`는 legacy 직접 촬영 코드 |
+| 카메라 | `picamera2` | `stream_server.py` |
 | 이미지 처리 | Pillow (`PIL`) | 카메라 crop/annotation |
 | 영상 서버 | Flask | `stream_server.py` |
 | Shell 실행 | POSIX shell, Python venv 경로 사용 | `run_*.sh` |
@@ -51,7 +53,6 @@ greenlink_pi/
 ├── command_worker.py
 ├── stream_server.py
 ├── stream_snapshot_service.py
-├── camera_service.py
 ├── camera_main.py
 ├── uploader.py
 ├── ai_trigger.py
@@ -80,7 +81,6 @@ greenlink_pi/
 | `stream_server.py` | 카메라 캡처, crop/label, MJPEG Flask endpoint | 높음 | Flutter 스트림, 사진 crop |
 | `stream_snapshot_service.py` | MJPEG에서 JPEG 한 장 추출 후 식물별 crop | 높음 | `camera_main` |
 | `camera_main.py` | 스트림 스냅샷 crop과 식물별 이미지 업로드 | 높음 | Backend, AI |
-| `camera_service.py` | LEGACY: Picamera2 still 직접 캡처 방식. 현재 active 경로는 `stream_snapshot_service.py`이며 cron/systemd/`camera_main.py`에서 호출되지 않음 | 낮음 | legacy 직접 캡처 경로 |
 | `uploader.py` | multipart 이미지 업로드 후 AI 작업 trigger | 높음 | Backend, AI worker |
 | `ai_trigger.py` | Ubuntu AI `/process` 요청 | 높음 | AI worker |
 | `run_sensor.sh` | venv Python으로 센서 실행, 로그 append | 중간 | 수집 운영 |
@@ -99,7 +99,7 @@ greenlink_pi/
 | I2C bus 1, address `0x23` | BH1750 | 조도 입력 | `config.py`, `sensor_service.py` |
 | BCM GPIO 27 | 조명 릴레이 | LED 조명 on/off | `config.py`, `relay_control.py` |
 | BCM GPIO `GREENLINK_PUMP_GPIO` (기본 22) | 펌프 릴레이 | 물주기 출력 | `config.py`, `relay_control.py` |
-| Camera interface | Pi Camera | MJPEG 및 사진 캡처 | `stream_server.py`; `camera_service.py`는 legacy |
+| Camera interface | Pi Camera | MJPEG 및 사진 캡처 | `stream_server.py` |
 
 릴레이는 코드상 active-low 동작으로 설정되어 있습니다. 즉, 실제 전기 연결이 이 전제와 다르면 명령과 물리 동작이 반대로 될 수 있으므로 설치 시 검증이 필요합니다.
 
@@ -228,7 +228,7 @@ Pi 파일에서 ESP와 직접 연결되는 Serial, MQTT, BLE 또는 HTTP 수신 
 ### 카메라 스트리밍과 이미지 업로드
 
 * 목적: 앱의 실시간 확인 영상과 AI 처리용 식물 이미지를 만듭니다.
-* 관련 파일: `stream_server.py`, `stream_snapshot_service.py`, `camera_main.py`, `uploader.py`; `camera_service.py`는 legacy 직접 캡처 코드입니다.
+* 관련 파일: `stream_server.py`, `stream_snapshot_service.py`, `camera_main.py`, `uploader.py`.
 * 실행 흐름: Flask 서버가 Picamera2 frame을 지속 캡처하여 전체 및 식물별 MJPEG route로 제공합니다. `camera_main.py`는 로컬 stream에서 한 프레임을 추출해 식물별로 crop하고 서버에 업로드합니다.
 * 입력값: 카메라 프레임과 식물별 crop 비율/매핑.
 * 출력값: MJPEG 응답, 업로드된 식물 이미지와 백엔드 image ID.

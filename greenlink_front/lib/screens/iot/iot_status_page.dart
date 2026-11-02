@@ -1,6 +1,9 @@
 // IoT 상태 화면 — 센서 조회, 물주기/조명/센서 새로고침 버튼
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../../core/utils/relative_time.dart';
 import '../../models/iot_models.dart';
 import '../../services/iot_service.dart';
 import '../../core/config/camera_config.dart';
@@ -8,6 +11,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/mjpeg_stream_view.dart';
 import '../../widgets/soil_moisture_sufficient_banner.dart';
 import '../../widgets/water_shortage_banner.dart';
+import 'widgets/device_activity_card.dart';
+import 'widgets/sensor_history_card.dart';
 
 // IoT 상태 화면 — 센서/카메라/제어 명령 표시
 class IotStatusPage extends StatefulWidget {
@@ -39,13 +44,46 @@ class _IotStatusPageState extends State<IotStatusPage> {
   bool _isSensorRefreshing = false;
 
   int _cameraReloadKey = 0;
+  int _historyRefreshToken = 0;
   bool _hasShownWaterShortageNotice = false;
+
+  // 명령 실행 결과 추적 — 대기/실행 중 명령이 있으면 잠시 동안 상태를 다시 조회한다.
+  Timer? _commandPollTimer;
+  int _commandPollCount = 0;
+  static const _commandPollInterval = Duration(seconds: 3);
+  static const _commandPollMaxCount = 10;
+
+  // 센서가 이 시간 이상 갱신되지 않으면 장치 연결 이상으로 안내한다.
+  static const _staleSensorThreshold = Duration(minutes: 30);
 
   // 초기 상태 설정
   @override
   void initState() {
     super.initState();
     _loadLatest();
+  }
+
+  // 리소스 정리
+  @override
+  void dispose() {
+    _commandPollTimer?.cancel();
+    super.dispose();
+  }
+
+  // 진행 중 명령이 끝날 때까지 짧게 재조회 — 최대 30초
+  void _scheduleCommandPollIfNeeded() {
+    final hasInProgress =
+        _status?.recentCommands.any((c) => c.isInProgress) == true;
+    if (!hasInProgress || _commandPollCount >= _commandPollMaxCount) {
+      _commandPollCount = 0;
+      return;
+    }
+    _commandPollTimer?.cancel();
+    _commandPollTimer = Timer(_commandPollInterval, () {
+      if (!mounted) return;
+      _commandPollCount++;
+      _loadLatest(showLoading: false);
+    });
   }
 
   // 최신 IoT 상태 조회 — 성공 시 화면 상태 반영
@@ -66,6 +104,7 @@ class _IotStatusPageState extends State<IotStatusPage> {
         _errorMessage = null;
       });
       _showWaterShortageSnackIfNeeded(latest);
+      _scheduleCommandPollIfNeeded();
     } else {
       setState(() {
         if (showLoading) _isLoading = false;
@@ -94,6 +133,7 @@ class _IotStatusPageState extends State<IotStatusPage> {
         if (!mounted) return;
 
         _hasShownWaterShortageNotice = false;
+        setState(() => _historyRefreshToken++);
         await _loadLatest(showLoading: false);
         return;
       }
@@ -301,7 +341,14 @@ class _IotStatusPageState extends State<IotStatusPage> {
   // 화면 섹션 렌더링
   Widget _buildContent() {
     final status = _status!;
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.primaryStrong,
+      onRefresh: () async {
+        setState(() => _historyRefreshToken++);
+        await _loadLatest(showLoading: false);
+      },
+      child: SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -317,6 +364,11 @@ class _IotStatusPageState extends State<IotStatusPage> {
             SoilMoistureSufficientBanner(
               soilMoisturePercent: status.soilMoisturePercent!,
             ),
+            const SizedBox(height: 16),
+          ],
+
+          if (_isSensorStale(status)) ...[
+            _buildStaleSensorNotice(status.lastMeasuredAt!),
             const SizedBox(height: 16),
           ],
 
@@ -338,11 +390,66 @@ class _IotStatusPageState extends State<IotStatusPage> {
 
           // 토양수분
           _buildSoilCard(status.soil, isWaterShortage: status.isWaterShortage),
+          const SizedBox(height: 16),
+
+          // 센서 추이 그래프
+          SensorHistoryCard(
+            userPlantId: widget.userPlantId,
+            refreshToken: _historyRefreshToken,
+          ),
           const SizedBox(height: 28),
 
           // 제어 섹션
           _buildControlSection(),
+          const SizedBox(height: 16),
+
+          // 조명 상태와 최근 명령 결과
+          DeviceActivityCard(
+            light: status.light,
+            commands: status.recentCommands,
+          ),
           const SizedBox(height: 20),
+        ],
+      ),
+      ),
+    );
+  }
+
+  bool _isSensorStale(IotLatestStatus status) {
+    final last = status.lastMeasuredAt;
+    return last != null &&
+        DateTime.now().difference(last) > _staleSensorThreshold;
+  }
+
+  // 센서 장기 미수신 안내 — 장치 전원/네트워크 확인 유도
+  Widget _buildStaleSensorNotice(DateTime lastMeasuredAt) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.warningBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warningBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.wifi_off_rounded,
+            size: 20,
+            color: AppColors.warningText,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '센서 데이터가 ${formatRelativeTime(lastMeasuredAt)} 이후로 들어오지 않았어요. '
+              '재배기 전원과 Wi-Fi 연결을 확인해 주세요.',
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: AppColors.warningText,
+              ),
+            ),
+          ),
         ],
       ),
     );

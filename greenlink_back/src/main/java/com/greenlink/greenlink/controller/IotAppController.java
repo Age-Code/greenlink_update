@@ -33,6 +33,23 @@ public class IotAppController {
         return ApiResponse.success("최신 IoT 상태 조회 성공", response);
     }
 
+    // 센서 기록 조회 — 토양 수분/온도/습도/조도 그래프용 (기본 24시간, 최대 168시간)
+    @GetMapping("/history")
+    public ApiResponse<IotAppDto.SensorHistoryResDto> getSensorHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long userPlantId,
+            @RequestParam(defaultValue = "24") int hours
+    ) {
+        IotAppDto.SensorHistoryResDto response =
+                iotAppService.getSensorHistory(
+                        userDetails.getUserId(),
+                        userPlantId,
+                        hours
+                );
+
+        return ApiResponse.success("센서 기록 조회 성공", response);
+    }
+
     // 내 식물 사진 기록 조회
     @GetMapping("/images")
     public ApiResponse<List<IotAppDto.PlantImageDto>> getPlantImages(

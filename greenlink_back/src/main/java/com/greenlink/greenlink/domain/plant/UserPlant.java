@@ -1,5 +1,6 @@
 package com.greenlink.greenlink.domain.plant;
 
+import org.hibernate.annotations.ColumnDefault;
 import com.greenlink.greenlink.common.BaseEntity;
 import com.greenlink.greenlink.domain.user.User;
 import jakarta.persistence.*;
@@ -53,6 +54,11 @@ public class UserPlant extends BaseEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    // 영양제로 단축된 성장일 수 — 영양제 1개당 1일
+    @ColumnDefault("0")
+    @Column(name = "growth_boost_days", nullable = false)
+    private int growthBoostDays = 0;
+
     // UserPlant 생성
     private UserPlant(User user, Plant plant, String nickname, LocalDateTime plantedAt, String imageUrl) {
         this.user = user;
@@ -77,9 +83,26 @@ public class UserPlant extends BaseEntity {
         return this.user.getId().equals(user.getId());
     }
 
+    // 수확 가능 날짜 — 식재일 + 성장일 - 영양제 단축일 (식재일보다 앞당겨지지 않음)
+    public LocalDate getHarvestableDate() {
+        int effectiveGrowthDays = Math.max(this.plant.getGrowthDays() - this.growthBoostDays, 0);
+        return this.plantedAt.toLocalDate().plusDays(effectiveGrowthDays);
+    }
+
     public boolean isHarvestable(LocalDate today) {
-        LocalDate harvestableDate = this.plantedAt.toLocalDate().plusDays(this.plant.getGrowthDays());
-        return !today.isBefore(harvestableDate);
+        return !today.isBefore(getHarvestableDate());
+    }
+
+    // 영양제 효과 적용 — 성장 중인 식물만 성장일 1일 단축
+    public void applyNutrient(LocalDate today) {
+        refreshHarvestableStatus(today);
+
+        if (this.status != UserPlantStatus.GROWING) {
+            throw new IllegalStateException("성장 중인 식물에만 영양제를 사용할 수 있습니다.");
+        }
+
+        this.growthBoostDays += 1;
+        refreshHarvestableStatus(today);
     }
 
     // 수확 가능 상태 갱신
@@ -104,7 +127,7 @@ public class UserPlant extends BaseEntity {
     }
 
     public long getRemainingDays(LocalDate today) {
-        LocalDate harvestableDate = this.plantedAt.toLocalDate().plusDays(this.plant.getGrowthDays());
+        LocalDate harvestableDate = getHarvestableDate();
         long remainingDays = ChronoUnit.DAYS.between(today, harvestableDate);
 
         return Math.max(remainingDays, 0);

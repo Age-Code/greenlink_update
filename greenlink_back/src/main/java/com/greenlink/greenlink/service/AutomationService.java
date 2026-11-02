@@ -848,6 +848,18 @@ public class AutomationService {
             Double thresholdValue,
             String message
     ) {
+        // 센서가 10분마다 들어오므로 같은 사유의 SKIP이 반복되면 로그가 의미 없이 쌓인다.
+        // 직전 로그와 사유가 같으면 저장하지 않고, 사유가 바뀔 때만 남긴다.
+        boolean sameAsLast = automationLogRepository
+                .findTopByUserPlantAndAutomationTypeAndDeletedFalseOrderByIdDesc(userPlant, automationType)
+                .filter(last -> last.getTriggerSensorType() == triggerSensorType
+                        && java.util.Objects.equals(last.getMessage(), message))
+                .isPresent();
+
+        if (sameAsLast) {
+            return;
+        }
+
         automationLogRepository.save(
                 AutomationLog.createSkippedLog(
                         userPlant,

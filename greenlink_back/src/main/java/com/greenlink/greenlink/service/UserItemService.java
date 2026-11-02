@@ -5,6 +5,7 @@ import com.greenlink.greenlink.domain.item.ItemType;
 import com.greenlink.greenlink.domain.item.UserItem;
 import com.greenlink.greenlink.domain.item.UserItemStatus;
 import com.greenlink.greenlink.domain.plant.UserPlant;
+import com.greenlink.greenlink.domain.plant.UserPlantStatus;
 import com.greenlink.greenlink.domain.user.User;
 import com.greenlink.greenlink.dto.UserItemDto;
 import com.greenlink.greenlink.repository.UserItemRepository;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,6 +65,10 @@ public class UserItemService {
 
         validatePotCanBeEquipped(potUserItem);
 
+        if (userPlant.getStatus() == UserPlantStatus.HARVESTED) {
+            throw new IllegalStateException("수확이 끝난 식물에는 화분을 장착할 수 없습니다.");
+        }
+
         unequipExistingPot(user, userPlant);
 
         potUserItem.equipPot(userPlant);
@@ -105,9 +111,11 @@ public class UserItemService {
 
         validateNutrientCanBeUsed(nutrientUserItem);
 
+        userPlant.applyNutrient(LocalDate.now());
+
         nutrientUserItem.useNutrient(userPlant);
 
-        return UserItemDto.UseNutrientResDto.from(nutrientUserItem);
+        return UserItemDto.UseNutrientResDto.from(nutrientUserItem, userPlant, LocalDate.now());
     }
 
     // find User Items 조회 — 없으면 예외 또는 Optional 반환

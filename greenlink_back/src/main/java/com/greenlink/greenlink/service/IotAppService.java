@@ -2,6 +2,7 @@ package com.greenlink.greenlink.service;
 
 import com.greenlink.greenlink.domain.ai.AiPlantImage;
 import com.greenlink.greenlink.domain.automation.AutomationSetting;
+import com.greenlink.greenlink.domain.iot.CommandStatus;
 import com.greenlink.greenlink.domain.iot.CommandType;
 import com.greenlink.greenlink.domain.iot.DeviceCommand;
 import com.greenlink.greenlink.domain.iot.EspSensorData;
@@ -32,6 +33,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 // IoT 앱 서비스 — 수동 명령 생성, wateringSafetyEnabled 체크
@@ -55,6 +57,8 @@ public class IotAppService {
     private final IotDeviceRepository iotDeviceRepository;
     private final AutomationSettingRepository automationSettingRepository;
     private final DeviceCommandGuard deviceCommandGuard;
+
+    private static final int MAX_HISTORY_HOURS = 168;
 
     // 내 식물 IoT 최신 상태 조회
     public IotAppDto.IotLatestResDto getLatestIotStatus(
@@ -94,6 +98,25 @@ public class IotAppService {
                     .orElse(null);
         }
 
+        DeviceCommand lastLightCommand = deviceCommandRepository
+                .findTopByGrowSpaceAndCommandTypeInAndCommandStatusAndDeletedFalseOrderByCompletedAtDesc(
+                        growSpace,
+                        List.of(CommandType.LIGHT_ON, CommandType.LIGHT_OFF),
+                        CommandStatus.SUCCESS
+                )
+                .orElse(null);
+
+        // 공간 명령 중 내 식물 명령과 공용(식물 미지정) 명령만 보여준다.
+        List<DeviceCommand> recentCommands = deviceCommandRepository
+                .findTop10ByGrowSpaceAndDeletedFalseOrderByRequestedAtDesc(growSpace)
+                .stream()
+                .filter(command -> command.getUserPlant() == null
+                        || command.getUserPlant().getId().equals(userPlant.getId())
+                        || command.getCommandType() == CommandType.LIGHT_ON
+                        || command.getCommandType() == CommandType.LIGHT_OFF)
+                .limit(5)
+                .toList();
+
         return IotAppDto.IotLatestResDto.of(
                 userPlant.getId(),
                 growSpace,
@@ -101,8 +124,51 @@ public class IotAppService {
                 latestSoil,
                 latestImage,
                 latestAiImage,
-                resolveWateringStatus(userPlant)
+                resolveWateringStatus(userPlant),
+                lastLightCommand,
+                recentCommands
         );
+    }
+
+    // 센서 기록 조회 — 앱 그래프용, 최대 7일
+    public IotAppDto.SensorHistoryResDto getSensorHistory(
+            Long userId,
+            Long userPlantId,
+            int hours
+    ) {
+        if (hours < 1 || hours > MAX_HISTORY_HOURS) {
+            throw new IllegalArgumentException("조회 기간은 1~" + MAX_HISTORY_HOURS + "시간이어야 합니다.");
+        }
+
+        User user = findActiveUser(userId);
+
+        UserPlant userPlant = findMyUserPlant(userPlantId, user);
+
+        GrowSpace growSpace = findGrowSpaceByUserPlant(userPlant);
+
+        LocalDateTime to = LocalDateTime.now();
+        LocalDateTime from = to.minusHours(hours);
+
+        List<IotAppDto.SoilPointDto> soil = espSensorDataRepository
+                .findByUserPlantAndMeasuredAtBetweenOrderByMeasuredAtAsc(userPlant, from, to)
+                .stream()
+                .filter(data -> !data.isDeleted())
+                .map(IotAppDto.SoilPointDto::from)
+                .toList();
+
+        List<IotAppDto.EnvironmentPointDto> environment = raspberrySensorDataRepository
+                .findByGrowSpaceAndMeasuredAtBetweenOrderByMeasuredAtAsc(growSpace, from, to)
+                .stream()
+                .filter(data -> !data.isDeleted())
+                .map(IotAppDto.EnvironmentPointDto::from)
+                .toList();
+
+        return IotAppDto.SensorHistoryResDto.builder()
+                .userPlantId(userPlant.getId())
+                .hours(hours)
+                .soil(soil)
+                .environment(environment)
+                .build();
     }
 
     // 내 식물 사진 기록 조회

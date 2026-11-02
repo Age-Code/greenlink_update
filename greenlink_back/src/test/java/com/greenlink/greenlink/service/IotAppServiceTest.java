@@ -11,6 +11,7 @@ import com.greenlink.greenlink.domain.user.User;
 import com.greenlink.greenlink.dto.iot.IotAppDto;
 import com.greenlink.greenlink.repository.AiPlantImageRepository;
 import com.greenlink.greenlink.repository.AutomationSettingRepository;
+import com.greenlink.greenlink.repository.DeviceCommandRepository;
 import com.greenlink.greenlink.repository.EspSensorDataRepository;
 import com.greenlink.greenlink.repository.GrowSpacePlantRepository;
 import com.greenlink.greenlink.repository.PlantImageRepository;
@@ -48,6 +49,8 @@ class IotAppServiceTest {
     private AiPlantImageRepository aiPlantImageRepository;
     @Mock
     private AutomationSettingRepository automationSettingRepository;
+    @Mock
+    private DeviceCommandRepository deviceCommandRepository;
 
     @InjectMocks
     private IotAppService iotAppService;

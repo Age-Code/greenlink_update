@@ -179,6 +179,7 @@ JWT는 `tokenVersion` claim을 포함합니다. `JwtAuthenticationFilter`는 토
 | --- | --- | --- | --- | --- | --- |
 | GET | `/api/user-plants/{userPlantId}/iot/latest` | JWT | 최신 센서/이미지 조회 | 없음 | `IotLatestResDto` |
 | GET | `/api/user-plants/{userPlantId}/iot/images` | JWT | 식물 이미지 이력 조회 | 없음 | `PlantImageDto[]` |
+| GET | `/api/user-plants/{userPlantId}/iot/history?hours=24` | JWT | 센서 기록(그래프) 조회 | `hours` 1~168, 기본 24 | `SensorHistoryResDto` |
 | POST | `/api/user-plants/{userPlantId}/iot/water` | JWT | 수동 급수 명령 생성 | body 없음 | `WaterCommandResDto` |
 | POST | `/api/user-plants/{userPlantId}/iot/light/on` | JWT | 수동 조명 켜기 명령 생성 | body 없음 | `LightCommandResDto` |
 | POST | `/api/user-plants/{userPlantId}/iot/light/off` | JWT | 수동 조명 끄기 명령 생성 | body 없음 | `LightCommandResDto` |
@@ -306,7 +307,18 @@ OAuth 요청 DTO에는 validation annotation이 확인되지 않습니다. 실�
 | `growSpace` | `growSpaceId`, `name` | 활성 공간 연결 |
 | `environment` | `sensorDataId`, `temperature`, `humidity`, `light`, `measuredAt` | 공간별 최신 Pi 기록 |
 | `soil` | `sensorDataId`, `soilMoistureRaw`, `soilMoisturePercent`, `measuredAt` | 식물별 최신 ESP 기록 |
-| `latestImage` | `plantImageId`, `imageUrl`, `aiImageUrl`, `capturedAt` | 식물 사진 우선, 없으면 공간 최신 사진 fallback |
+| `latestImage` | `plantImageId`, `imageUrl`, `aiImageUrl`, `capturedAt` | 식물 사진 우선, 없으면 공간 전체 사진(식물 미지정)만 fallback |
+| `watering` | `canWater`, `blockReason`, `shortageThresholdPercent` | 서버 급수 판정 |
+| `light` | `on`, `changedAt` | 공간의 마지막 성공 LIGHT_ON/LIGHT_OFF 명령. 기록 없으면 `null` |
+| `recentCommands[]` | `commandId`, `commandType`, `commandStatus`, `requestedAt`, `completedAt`, `resultMessage` | 최근 명령 최대 5건(내 식물 명령 + 공간 공용 명령), 최신순 |
+
+#### `GET /api/user-plants/{userPlantId}/iot/history`
+
+| Response Object | Fields | 출처 |
+| --- | --- | --- |
+| root | `userPlantId`, `hours` | 요청 기간 |
+| `soil[]` | `measuredAt`, `soilMoisturePercent` | 식물 ESP 기록, 측정 시각 오름차순 |
+| `environment[]` | `measuredAt`, `temperature`, `humidity`, `light` | 공간 Pi 기록, 측정 시각 오름차순 |
 
 식물이 재배 공간과 연결되어 있지 않으면 처리할 수 없습니다. 환경, 토양, 이미지 자체가 아직 없으면 각각 `null`이 될 수 있습니다.
 

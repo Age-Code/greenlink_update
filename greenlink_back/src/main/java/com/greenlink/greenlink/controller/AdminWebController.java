@@ -9,6 +9,7 @@ import com.greenlink.greenlink.domain.user.UserRole;
 import com.greenlink.greenlink.dto.AdminDto;
 import com.greenlink.greenlink.dto.AuthDto;
 import com.greenlink.greenlink.security.CustomUserDetails;
+import com.greenlink.greenlink.service.AdminDashboardService;
 import com.greenlink.greenlink.service.AdminService;
 import com.greenlink.greenlink.service.AuthService;
 import com.greenlink.greenlink.service.UserService;
@@ -33,6 +34,7 @@ public class AdminWebController {
     private static final long ADMIN_COOKIE_MAX_AGE_SECONDS = 86400;
 
     private final AdminService adminService;
+    private final AdminDashboardService adminDashboardService;
     private final AuthService authService;
     private final UserService userService;
 
@@ -96,7 +98,8 @@ public class AdminWebController {
 
     // index 처리
     @GetMapping({"", "/", "/index"})
-    public String index() {
+    public String index(Model model) {
+        model.addAttribute("dashboard", adminDashboardService.getDashboard());
         return "admin/index";
     }
 

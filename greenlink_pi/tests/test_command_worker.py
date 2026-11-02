@@ -22,6 +22,7 @@ relay_control.pump_for_gpio = Mock()
 relay_control.led_on = Mock()
 relay_control.led_off = Mock()
 relay_control.all_off = Mock()
+relay_control.pump_off = Mock()
 
 sensor_service = ModuleType("sensor_service")
 sensor_service.read_all_sensors = Mock()
@@ -49,6 +50,8 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
         api_client.complete_command.reset_mock()
         relay_control.pump_for_gpio.reset_mock()
         relay_control.all_off.reset_mock()
+        relay_control.pump_off.reset_mock()
+        api_client.complete_command.side_effect = None
 
     def test_invalid_duration_reports_failed_without_running_pump(self):
         invalid_values = [
@@ -79,7 +82,8 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
                 api_client.mark_command_processing.assert_called_once_with(42)
                 relay_control.pump_for_gpio.assert_not_called()
                 api_client.complete_command.assert_called_once()
-                relay_control.all_off.assert_called_once()
+                relay_control.pump_off.assert_called_once()
+                relay_control.all_off.assert_not_called()
 
                 failure_report = api_client.complete_command.call_args.kwargs
                 self.assertEqual(failure_report["command_id"], 42)
@@ -101,13 +105,30 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
             seconds=1.0,
         )
         api_client.complete_command.assert_called_once()
-        relay_control.all_off.assert_not_called()
+        relay_control.pump_off.assert_not_called()
 
         success_report = api_client.complete_command.call_args.kwargs
         self.assertEqual(success_report["command_id"], 43)
         self.assertTrue(success_report["success"])
         self.assertIn("급수 완료", success_report["result_message"])
 
+    def test_report_failure_after_pumping_is_retried_as_success_not_failed(self):
+        api_client.complete_command.side_effect = [ConnectionError("network down"), None]
+
+        command_worker.handle_water_command({
+            "commandId": 44,
+            "durationSeconds": 1,
+            "pumpChannel": {
+                "gpioPin": 22,
+                "relayChannel": 1,
+            },
+        })
+
+        relay_control.pump_for_gpio.assert_called_once()
+        self.assertEqual(api_client.complete_command.call_count, 2)
+        for call in api_client.complete_command.call_args_list:
+            self.assertTrue(call.kwargs["success"])
+        relay_control.all_off.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,9 +2,11 @@ package com.greenlink.greenlink.dto;
 
 import com.greenlink.greenlink.domain.item.Item;
 import com.greenlink.greenlink.domain.item.UserItem;
+import com.greenlink.greenlink.domain.plant.UserPlant;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -179,17 +181,21 @@ public class UserItemDto {
         private String status;
         private Long userPlantId;
 
-        // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
-        public static UseNutrientResDto from(UserItem userItem) {
-            Long userPlantId = userItem.getUserPlant() == null
-                    ? null
-                    : userItem.getUserPlant().getId();
+        // 영양제 적용 후 식물 상태 — 앱이 단축 결과를 바로 보여줄 수 있도록 포함
+        private String userPlantStatus;
+        private Long remainingDays;
+        private Integer growthBoostDays;
 
+        // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
+        public static UseNutrientResDto from(UserItem userItem, UserPlant userPlant, LocalDate today) {
             return UseNutrientResDto.builder()
                     .userItemId(userItem.getId())
                     .itemType(userItem.getItem().getItemType().name())
                     .status(userItem.getStatus().name())
-                    .userPlantId(userPlantId)
+                    .userPlantId(userPlant.getId())
+                    .userPlantStatus(userPlant.getStatus().name())
+                    .remainingDays(userPlant.getRemainingDays(today))
+                    .growthBoostDays(userPlant.getGrowthBoostDays())
                     .build();
         }
     }

@@ -17,6 +17,24 @@ import java.util.Optional;
 // DeviceCommandRepository — JPA 데이터 접근
 public interface DeviceCommandRepository extends JpaRepository<DeviceCommand, Long> {
 
+    // 관리자 대시보드 — 전체 최근 명령, 실패 명령 수
+    List<DeviceCommand> findTop15ByDeletedFalseOrderByRequestedAtDesc();
+
+    long countByCommandStatusAndRequestedAtAfterAndDeletedFalse(
+            CommandStatus commandStatus,
+            LocalDateTime requestedAt
+    );
+
+    // 앱 최근 명령 이력 — 식물 명령과 공간 공용(조명) 명령을 함께 본다.
+    List<DeviceCommand> findTop10ByGrowSpaceAndDeletedFalseOrderByRequestedAtDesc(GrowSpace growSpace);
+
+    // 현재 조명 상태 추정 — 마지막으로 성공한 LIGHT_ON/LIGHT_OFF
+    Optional<DeviceCommand> findTopByGrowSpaceAndCommandTypeInAndCommandStatusAndDeletedFalseOrderByCompletedAtDesc(
+            GrowSpace growSpace,
+            Collection<CommandType> commandTypes,
+            CommandStatus commandStatus
+    );
+
     // find By Id And Deleted False 조회 — JPA query method
     Optional<DeviceCommand> findByIdAndDeletedFalse(Long id);
 

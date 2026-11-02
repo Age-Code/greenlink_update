@@ -96,7 +96,7 @@ class AuthService {
         },
       );
 
-      return _handleLoginResponse(response, '카카오');
+      return await _handleLoginResponse(response, '카카오');
     } catch (e) {
       debugPrint('[AuthService] ❌ 카카오 로그인 예외: $e');
       return ApiResponse<LoginResponse>(
@@ -145,7 +145,7 @@ class AuthService {
         },
       );
 
-      return _handleLoginResponse(response, '구글');
+      return await _handleLoginResponse(response, '구글');
     } catch (e) {
       debugPrint('[AuthService] ❌ 구글 로그인 예외: $e');
       return ApiResponse<LoginResponse>(
