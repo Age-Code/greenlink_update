@@ -98,7 +98,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/error").permitAll()
 
-                        .requestMatchers("/api/ai/**").permitAll()
+                        // 서버 디스크에 저장한 식물 사진 (앱 Image.network가 인증 헤더 없이 읽음)
+                        .requestMatchers("/images/**").permitAll()
 
                         // 그 외 API는 JWT 인증 필요
                         .anyRequest().authenticated()

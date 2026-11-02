@@ -43,3 +43,5 @@ src/main/resources/yaml/application-keys.yaml
 src/main/resources/yaml/application-keys.yaml
 src/main/resources/yaml/*.yaml
 src/main/resources/yaml/*.yml
+### 로컬 실행 시 식물 사진 저장소 ###
+data/

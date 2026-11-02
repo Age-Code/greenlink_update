@@ -4,7 +4,6 @@
 # application.yaml이 optional import로 읽어들이며, 실제 파일은 .gitignore 대상이다.
 # 각 항목은 같은 이름의 환경변수로 대신 주입할 수도 있다.
 #   jwt.secret                  -> JWT_SECRET
-#   greenlink.ai.worker-secret  -> GREENLINK_AI_WORKER_SECRET
 #   spring.datasource.url       -> SPRING_DATASOURCE_URL
 #
 # 값이 하나라도 없으면 애플리케이션은 기동 단계에서 실패한다.
@@ -21,12 +20,6 @@ jwt:
   #   openssl rand -base64 48
   secret: <jwt-signing-secret>
 
-greenlink:
-  ai:
-    # Ubuntu AI Worker가 X-AI-Worker-Secret 헤더로 보내는 값과 반드시 동일해야 한다.
-    #   openssl rand -hex 32
-    worker-secret: <ai-worker-shared-secret>
-
 oauth:
   kakao:
     client-id: <kakao-rest-api-key>
@@ -38,11 +31,3 @@ oauth:
     client-secret: <google-client-secret>
     token-uri: https://oauth2.googleapis.com/token
     user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
-
-cloud:
-  aws:
-    # S3 자격 증명은 여기에 두지 않는다.
-    # 실행 환경의 AWS 기본 credential provider chain(instance role 등)을 사용한다.
-    region: <aws-region>
-    s3:
-      bucket: <s3-bucket-name>

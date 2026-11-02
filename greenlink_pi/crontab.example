@@ -1,0 +1,5 @@
+# GreenLink Raspberry Pi crontab 예시 — `crontab -e`로 등록 (Pi 시간대는 Asia/Seoul 기준)
+# 환경 센서: 10분마다 측정·업로드
+*/10 * * * * /home/greenlink/greenlink/run_sensor.sh
+# 앱 썸네일: 매일 09:00에 실시간 영상에서 한 장 캡처해 업로드 (조명이 켜져 있는 시간대)
+0 9 * * * /home/greenlink/greenlink/run_camera.sh

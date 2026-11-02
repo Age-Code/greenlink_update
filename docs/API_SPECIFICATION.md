@@ -1,3 +1,5 @@
+> **2026-11 변경**: AI 이미지 변환(OpenAI + rembg, Ubuntu AI Worker, `/api/ai/**`, `AiPlantImage`)과 AWS S3 저장은 제거되었습니다. 현재는 Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드하고, 백엔드가 서버 디스크(Docker 볼륨)에 저장해 `/images/**`로 제공하며 앱 썸네일로 씁니다. 재배기 1대 = 식물 1개 구성입니다. 아래 본문의 AI/S3 관련 내용은 이전 구성 기록입니다.
+
 # GreenLink API 명세서
 
 ## 1. 문서 목적과 기준
@@ -11,7 +13,6 @@
 | 인증/접근 정책 | `SecurityConfig.java`, `JwtAuthenticationFilter.java`, `IotDeviceDataService.java`, `IotCommandService.java` |
 | Flutter 호출 계약 | `greenlink_front/lib/core/constants/api_paths.dart`, `lib/services/**` |
 | Pi 장치 호출 계약 | `greenlink_pi/api_client.py`, `sensor_uploader.py`, `uploader.py`, `ai_trigger.py` |
-| AI Worker API | `greenlink_ubuntu/ai_worker_api.py`, `process_one.py` |
 | 영상 Stream API | `greenlink_pi/stream_server.py` |
 
 문서의 endpoint는 경로만 표기합니다. 코드에 포함된 외부 서버 주소, 장치 키, JWT 설정, 앱/OAuth 키 및 클라우드 자격 증명 값은 의도적으로 기록하지 않습니다.
@@ -24,15 +25,13 @@ flowchart LR
     ESP[ESP32] -->|X-DEVICE-KEY<br/>soil data| Back
     Pi[Raspberry Pi] -->|X-DEVICE-KEY<br/>environment/image/command| Back
     App -->|MJPEG GET| Stream[Pi Stream Server]
-    Pi -->|POST /process| AI[Ubuntu AI Worker]
     AI -->|AI 결과 callback| Back
 ```
 
 | 제공 서버 | 주 소비자 | 인터페이스 성격 |
 | --- | --- | --- |
-| Spring Backend | Flutter, ESP, Pi, AI worker, Admin | JSON REST API, multipart upload, 관리자 HTML |
+| Spring Backend | Flutter, ESP, Pi, Admin | JSON REST API, multipart upload, 관리자 HTML |
 | Raspberry Pi Stream Server | Flutter, 현장 확인자 | MJPEG stream 및 health |
-| Ubuntu AI Worker | Raspberry Pi | FastAPI JSON 작업 접수 |
 
 ## 3. Backend 공통 규약
 
@@ -96,7 +95,6 @@ Spring Security 필터가 인증을 먼저 거부하는 경우 `sendError`를 �
 | 사용자 JWT | `Authorization: Bearer <access-token>` 또는 지정 쿠키 | 사용자 소유 데이터, IoT 앱 기능, 자동화, 구성 API | Stateless SecurityContext 인증 |
 | 관리자 JWT 권한 | JWT 내 ADMIN role | `/api/admin/**`, `/admin/**` | `/admin/login`만 공개 |
 | 장치 키 | `X-DEVICE-KEY: <device-key>` | Pi/ESP 업로드 및 Pi 명령 처리 | Security는 공개 허용하고 Service가 활성 장치 키 검사 |
-| AI worker callback | `X-AI-Worker-Secret: <secret>` | `/api/ai/**` | Security는 공개 허용하고 MVC Interceptor가 shared secret을 검사하며 불일치 시 401 |
 
 JWT는 `tokenVersion` claim을 포함합니다. `JwtAuthenticationFilter`는 토큰의 `tokenVersion`과 DB의 `User.tokenVersion`을 비교하며, 불일치하면 인증을 설정하지 않아 보호 API에서 401이 됩니다. 로그아웃, 회원 탈퇴, 비밀번호 변경 시 `tokenVersion`이 증가하여 기존 토큰이 무효화됩니다.
 
@@ -107,7 +105,6 @@ JWT는 `tokenVersion` claim을 포함합니다. `JwtAuthenticationFilter`는 토
 | 공개 | `/api/auth/signup`, `/api/auth/login`, `/api/auth/oauth/kakao`, `/api/auth/oauth/google` |
 | 공개 마스터 조회 | `/api/plants/**`, `/api/items/**`, `/api/quests/**` |
 | 공개 라우팅 후 장치 키 검증 | `/api/iot/raspberry/**`, `/api/iot/esp/**`, `/api/iot/commands/**`, `/api/iot/plant-images` |
-| 공개 라우팅 후 AI worker secret 검증 | `/api/ai/**` |
 | ADMIN 전용 | `/api/admin/**`, 로그인 화면 외 `/admin/**` |
 | JWT 사용자 인증 필요 | 위 경로를 제외한 `/api/**` |
 
@@ -213,7 +210,6 @@ JWT는 `tokenVersion` claim을 포함합니다. `JwtAuthenticationFilter`는 토
 | GET | `/api/iot/devices` | JWT | 전체 장치 목록 | 없음 | `DeviceResDto[]` |
 | POST | `/api/iot/pump-channels` | JWT | 펌프 채널 등록 | `PumpChannelCreateReqDto` | `PumpChannelResDto` |
 | GET | `/api/iot/pump-channels` | JWT | 전체 펌프 채널 목록 | 없음 | `PumpChannelResDto[]` |
-| POST | `/api/ai/plant-images/{plantImageId}/result` | AI worker secret | AI 결과 URL 등록 | `SaveAiImageReqDto` | `AiImageResDto` |
 | POST | `/api/admin/plants` | ADMIN | 식물 마스터 생성 | `CreatePlantReqDto` | `PlantResDto` |
 | POST | `/api/admin/items` | ADMIN | 아이템 마스터 생성 | `CreateItemReqDto` | `ItemResDto` |
 | POST | `/api/admin/quests` | ADMIN | 퀘스트 마스터 생성 | `CreateQuestReqDto` | `QuestResDto` |
@@ -307,7 +303,7 @@ OAuth 요청 DTO에는 validation annotation이 확인되지 않습니다. 실�
 | `growSpace` | `growSpaceId`, `name` | 활성 공간 연결 |
 | `environment` | `sensorDataId`, `temperature`, `humidity`, `light`, `measuredAt` | 공간별 최신 Pi 기록 |
 | `soil` | `sensorDataId`, `soilMoistureRaw`, `soilMoisturePercent`, `measuredAt` | 식물별 최신 ESP 기록 |
-| `latestImage` | `plantImageId`, `imageUrl`, `aiImageUrl`, `capturedAt` | 식물 사진 우선, 없으면 공간 전체 사진(식물 미지정)만 fallback |
+| `latestImage` | `plantImageId`, `imageUrl`(서버 상대 경로 `/images/...`), `capturedAt` | 식물 사진 우선, 없으면 공간 전체 사진(식물 미지정)만 fallback |
 | `watering` | `canWater`, `blockReason`, `shortageThresholdPercent` | 서버 급수 판정 |
 | `light` | `on`, `changedAt` | 공간의 마지막 성공 LIGHT_ON/LIGHT_OFF 명령. 기록 없으면 `null` |
 | `recentCommands[]` | `commandId`, `commandType`, `commandStatus`, `requestedAt`, `completedAt`, `resultMessage` | 최근 명령 최대 5건(내 식물 명령 + 공간 공용 명령), 최신순 |
@@ -421,17 +417,6 @@ stateDiagram-v2
 
 `DeviceResDto`와 `PumpChannelResDto`는 장치 인증 키를 API 응답에서 제외합니다. DB 저장 및 장치 키 검증 로직은 유지됩니다. 다만 목록 API는 코드 주석상 전체 데이터를 반환하므로 일반 JWT 사용자에게 장치 구성이 노출될 수 있습니다.
 
-### 6.9 AI 결과 Callback
-
-#### `POST /api/ai/plant-images/{plantImageId}/result`
-
-| 구분 | Fields | 규칙 |
-| --- | --- | --- |
-| Request | `finalAiUrl` | Service에서 null/blank 거부 |
-| Response | `aiPlantImageId`, `plantImageId`, `userPlantId`, `originalImageUrl`, `aiImageUrl`, `status`, `createdAt` | AI 이미지 레코드 저장 결과 |
-| 전제 | 원본 `PlantImage`가 존재하고 `UserPlant`에 연결되어 있어야 함 | 공간 전용 이미지에는 결과 연결 불가 |
-| 인증 | `X-AI-Worker-Secret` header 필수 | `AiWorkerAuthInterceptor`가 검증하며 누락 또는 불일치 시 401 |
-
 ## 7. Admin Web Route
 
 `AdminWebController`는 JSON REST API가 아니라 Thymeleaf HTML과 redirect를 제공합니다.
@@ -450,63 +435,15 @@ stateDiagram-v2
 
 `SecurityConfig`의 form login은 비활성화되어 있지만, 로그인 HTML은 `/api/auth/login`에 JSON 요청을 보내 JWT를 발급받고 `jwt_token` 쿠키를 `Secure; SameSite=Strict`로 저장한 뒤 `/admin`으로 이동합니다. `JwtAuthenticationFilter`가 이 쿠키를 읽어 ADMIN 권한을 확인합니다. 쿠키는 브라우저 JavaScript가 생성하므로 `HttpOnly`는 적용되지 않습니다.
 
-## 8. Ubuntu AI Worker API
+## 8. Raspberry Pi Stream API
 
-### 8.1 Endpoint
+### 서버 사진 제공
 
-| Method | URL | 인증 | 역할 | Request | Response |
-| --- | --- | --- | --- | --- | --- |
-| GET | `/health` | 확인되지 않음 | Worker 생존 확인 | 없음 | `success`, `message` |
-| POST | `/process` | 확인되지 않음 | 이미지 변환 작업 접수 | `ProcessRequest` | 처리 접수 데이터 |
-
-### 8.2 `POST /process` 계약
-
-| Field | 타입 | 필수 | 설명 |
+| Method | URL | 인증 | 설명 |
 | --- | --- | --- | --- |
-| `plantImageId` | integer | O | Backend 원본 이미지 ID |
-| `userPlantId` | integer/null | 선택 | 식물 ID, 응답/작업명에 활용 |
-| `imageUrl` | string | O | 처리할 원본 이미지 URL |
-| `name` | string/null | 선택 | 작업 파일명 prefix; 없으면 생성. 제공 시 1~100자의 문자·숫자·밑줄·하이픈만 허용 |
+| GET | `/images/userplant/{파일명}` | 없음 | Pi가 매일 캡처해 올린 사진. 응답 JSON의 `imageUrl`이 이 상대 경로이며 앱이 서버 주소를 붙여 표시 |
 
-```json
-{
-  "success": true,
-  "message": "AI processing started",
-  "data": {
-    "plantImageId": 1,
-    "userPlantId": 1,
-    "imageUrl": "<original-image-url>",
-    "name": "<job-name>",
-    "status": "PROCESSING"
-  }
-}
-```
-
-이 응답은 결과 생성 완료가 아니라 FastAPI background task 접수 성공을 뜻합니다. 완료 상태 조회 API나 실패 callback API는 확인되지 않습니다.
-
-제공된 `name`은 API 접수 시와 실제 처리 함수 진입 시 모두 검증합니다. 빈 문자열, 100자 초과, 공백·점·슬래시 등 허용되지 않은 문자가 있으면 API는 background 작업을 등록하지 않고 `422`를 반환합니다.
-
-### 8.3 Worker 내부 후속 호출
-
-```mermaid
-sequenceDiagram
-    participant Pi as Raspberry Pi
-    participant AI as AI Worker
-    participant Img as Original Image URL
-    participant Gen as Image Edit Service
-    participant Store as Object Storage
-    participant B as Backend
-    Pi->>AI: POST /process
-    AI-->>Pi: status=PROCESSING
-    AI->>Img: 원본 이미지 다운로드
-    AI->>AI: 배경/화분 영역 제거
-    AI->>Gen: 스타일 변환 요청
-    Gen-->>AI: 최종 PNG
-    AI->>Store: 최종 결과 업로드
-    AI->>B: POST /api/ai/plant-images/{id}/result
-```
-
-## 9. Raspberry Pi Stream API
+### Pi Stream
 
 | Method | URL | Response | 소비자 / 비고 |
 | --- | --- | --- | --- |
@@ -549,9 +486,9 @@ sequenceDiagram
 
 ## 12. 정리 요약
 
-GreenLink의 중심 API는 Spring Backend가 제공하며, Flutter는 JWT API를, ESP와 Pi는 장치 키 API를, Ubuntu AI Worker는 shared secret header 기반 callback API를 사용합니다. Pi는 별도의 MJPEG stream과 AI 작업 trigger 역할도 맡습니다.
+GreenLink의 중심 API는 Spring Backend가 제공하며, Flutter는 JWT API를, ESP와 Pi는 장치 키 API를, (AI Worker callback API는 제거됨)를 사용합니다. Pi는 별도의 MJPEG stream과 AI 작업 trigger 역할도 맡습니다.
 
-운영 보안 측면에서는 장치 키 저장/회전 정책, secret 외부화, AI Worker `/process` 접근 통제가 핵심 확인 사항입니다.
+운영 보안 측면에서는 장치 키 저장/회전 정책, secret 외부화, 카메라 영상 접근 통제가 핵심 확인 사항입니다.
 
 ## 13. 추가로 확인하면 좋은 점
 

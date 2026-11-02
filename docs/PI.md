@@ -1,5 +1,7 @@
 # Raspberry Pi 코드 분석
 
+> **2026-11 변경**: AI 이미지 변환(OpenAI + rembg, Ubuntu AI Worker, `/api/ai/**`, `AiPlantImage`)과 AWS S3 저장은 제거되었습니다. 현재는 Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드하고, 백엔드가 서버 디스크(Docker 볼륨)에 저장해 `/images/**`로 제공하며 앱 썸네일로 씁니다. 재배기 1대 = 식물 1개 구성입니다. 아래 본문의 AI/S3 관련 내용은 이전 구성 기록입니다.
+
 ## 분석 범위와 Pi의 역할
 
 `greenlink_pi/`는 GreenLink의 현장 게이트웨이이자 액추에이터/카메라 실행 노드입니다. 코드에서 확인되는 역할은 다음 네 가지입니다.

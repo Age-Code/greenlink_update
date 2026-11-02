@@ -7,7 +7,6 @@ import com.greenlink.greenlink.domain.iot.EspSensorData;
 import com.greenlink.greenlink.domain.iot.GrowSpace;
 import com.greenlink.greenlink.domain.iot.PlantImage;
 import com.greenlink.greenlink.domain.iot.RaspberrySensorData;
-import com.greenlink.greenlink.domain.ai.AiPlantImage;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -43,7 +42,6 @@ public class IotAppDto {
                 RaspberrySensorData raspberrySensorData,
                 EspSensorData espSensorData,
                 PlantImage latestImage,
-                AiPlantImage latestAiImage,
                 WateringDto watering,
                 DeviceCommand lastLightCommand,
                 List<DeviceCommand> recentCommands
@@ -53,7 +51,7 @@ public class IotAppDto {
                     .growSpace(GrowSpaceSimpleDto.from(growSpace))
                     .environment(EnvironmentDto.from(raspberrySensorData))
                     .soil(SoilDto.from(espSensorData))
-                    .latestImage(PlantImageDto.from(latestImage, latestAiImage))
+                    .latestImage(PlantImageDto.from(latestImage))
                     .watering(watering)
                     .light(LightStateDto.from(lastLightCommand))
                     .recentCommands(recentCommands.stream().map(CommandSummaryDto::from).toList())
@@ -286,36 +284,20 @@ public class IotAppDto {
     public static class PlantImageDto {
         private Long plantImageId;
 
-        // 라즈베리파이 원본 이미지 URL
+        // 매일 고정 시각에 카메라 영상에서 캡처한 사진 — 서버 상대 경로("/images/...")
         private String imageUrl;
-
-        // AI 변환 이미지 URL — 값이 있으면 앱에서는 이 이미지를 우선 표시한다.
-        private String aiImageUrl;
 
         private LocalDateTime capturedAt;
 
         // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
         public static PlantImageDto from(PlantImage plantImage) {
-            return from(plantImage, null);
-        }
-
-        // DTO 변환 — Entity 또는 원시 데이터를 응답 모델로 매핑
-        public static PlantImageDto from(
-                PlantImage plantImage,
-                AiPlantImage aiPlantImage
-        ) {
             if (plantImage == null) {
                 return null;
             }
 
-            String aiImageUrl = aiPlantImage == null
-                    ? null
-                    : aiPlantImage.getAiImageUrl();
-
             return PlantImageDto.builder()
                     .plantImageId(plantImage.getId())
                     .imageUrl(plantImage.getImageUrl())
-                    .aiImageUrl(aiImageUrl)
                     .capturedAt(plantImage.getCapturedAt())
                     .build();
         }

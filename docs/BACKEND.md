@@ -1,5 +1,7 @@
 # Backend 코드 분석
 
+> **2026-11 변경**: AI 이미지 변환(OpenAI + rembg, Ubuntu AI Worker, `/api/ai/**`, `AiPlantImage`)과 AWS S3 저장은 제거되었습니다. 현재는 Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드하고, 백엔드가 서버 디스크(Docker 볼륨)에 저장해 `/images/**`로 제공하며 앱 썸네일로 씁니다. 재배기 1대 = 식물 1개 구성입니다. 아래 본문의 AI/S3 관련 내용은 이전 구성 기록입니다.
+
 ## 분석 범위와 역할
 
 `greenlink_back/`는 GreenLink의 중앙 API 서버입니다. 회원과 식물 육성 데이터를 관리하고, ESP 및 Raspberry Pi가 올리는 센서/이미지 데이터를 저장하며, 장치 제어 명령과 자동화 판단을 담당합니다. Ubuntu AI 작업자가 처리한 식물 이미지 결과도 이 서버에 다시 연결됩니다.

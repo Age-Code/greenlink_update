@@ -13,8 +13,8 @@
 [![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-A22846?logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
 [![ESP32](https://img.shields.io/badge/ESP32-000000?logo=espressif&logoColor=white)](https://www.espressif.com/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white)](https://openai.com/)
-[![AWS](https://img.shields.io/badge/AWS-FF9900?logo=amazonwebservices&logoColor=white)](https://aws.amazon.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare_Tunnel-F38020?logo=cloudflare&logoColor=white)](https://www.cloudflare.com/)
 
 </div>
 
@@ -80,11 +80,11 @@ GreenLink는 **앱 활동 기반 참여 + IoT 기반 실제 관리 + 센서·사
 - 센서값 기반 자동 물주기·조명 판단 (AutomationService)
 - 데이터 기반 자동화 임계치 학습 (AutomationLearningService)
 
-### 🎨 AI 이미지 변환
-- Raspberry Pi 카메라로 실제 식물 사진 촬영
-- OpenAI Images API + rembg 기반 배경·화분 제거
-- 앱 스타일 일러스트로 변환 후 S3 저장
-- 앱에서 변환된 이미지 표시
+### 📸 일일 식물 사진 (썸네일)
+- Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드
+- 백엔드가 서버 디스크(Docker 볼륨)에 저장하고 `/images/**`로 제공
+- 앱 홈·식물 상세 화면의 썸네일로 표시 (촬영 날짜 함께 표시)
+- 보관 기간(기본 30일)이 지난 사진은 자동 정리, 식물별 최신 사진은 유지
 
 ### 🛠️ 관리자
 - Thymeleaf 기반 운영 대시보드: 사용자·식물 수, 장치 온라인/오프라인, 최근 명령과 24시간 실패 건수
@@ -103,10 +103,8 @@ flowchart TD
     ESP[🔌 ESP32<br/>토양수분 센서] -->|HTTP POST| B
     PI[🍓 Raspberry Pi<br/>환경센서·카메라·릴레이] -->|센서/사진 POST<br/>명령 polling| B
     B -->|제어 명령| PI
-    PI -->|사진 처리 요청| AI[🐧 Ubuntu AI Worker<br/>FastAPI]
-    AI -->|결과 이미지 저장| S3[(☁️ AWS S3)]
-    B -->|원본 이미지 저장| S3
-    AI -->|AI 결과 URL callback| B
+    B -->|매일 캡처 사진 저장| IMG[(🖼️ 서버 디스크<br/>/images)]
+    F -->|썸네일 조회| IMG
 ```
 
 ### 데이터 흐름
@@ -115,7 +113,7 @@ flowchart TD
 |---|---|
 | **제어 요청** | Flutter → Spring Boot → Raspberry Pi → Relay → Pump/LED |
 | **센서 데이터** | ESP32/RPi Sensors → Spring Boot → MySQL → Flutter |
-| **AI 이미지** | RPi Camera → Spring Boot → Ubuntu AI → OpenAI API → S3 → Flutter |
+| **식물 사진** | RPi Camera(매일 09:00) → Spring Boot → 서버 디스크 → Flutter 썸네일 |
 
 ---
 
@@ -136,7 +134,6 @@ flowchart TD
 - **Spring Boot 4.0.6** (Java 17)
 - Spring Security + JWT(jjwt)
 - Spring Data JPA
-- AWS SDK S3
 - Thymeleaf (관리자 화면)
 - OAuth2 (Kakao / Google)
 
@@ -153,21 +150,14 @@ flowchart TD
   - 토양수분 ADC (GPIO 34)
 - **Raspberry Pi**
   - DHT22 (GPIO 4), BH1750 (I2C 0x23)
-  - 릴레이 (GPIO 22, 23, 27)
+  - 릴레이 (펌프 GPIO 22 기본·LED GPIO 27)
   - Pi Camera (MJPEG)
 - Active-LOW 릴레이 회로
 
-### AI / Image
-- **Python 3.11**
-- FastAPI (AI Worker API)
-- OpenAI Images API
-- rembg (배경 제거)
-- PIL, NumPy
-
-### Infrastructure (재구축 대상)
-- **AWS EC2 또는 Lightsail / S3**
-- Nginx + HTTPS
-- Cloudflare
+### Infrastructure
+- 학교 서버(Windows WSL) **Docker Compose**
+- **Cloudflare Tunnel** (HTTPS, `greenlink.likepigs.shop`)
+- 사진 저장: 서버 디스크(Docker 볼륨)
 
 </td>
 </tr>
@@ -177,7 +167,7 @@ flowchart TD
 
 ## 📂 프로젝트 구조
 
-본 저장소는 **5개 모듈을 단일 모노레포(monorepo)** 로 관리합니다. 각 모듈은 독립적으로 빌드·실행 가능합니다.
+본 저장소는 **4개 모듈을 단일 모노레포(monorepo)** 로 관리합니다. 각 모듈은 독립적으로 빌드·실행 가능합니다.
 
 ```text
 greenlink/
@@ -185,7 +175,7 @@ greenlink/
 ├── greenlink_front/     # Flutter 앱 (사용자용 모바일 UI)
 ├── greenlink_esp/       # ESP32 펌웨어 (토양수분 센서)
 ├── greenlink_pi/        # Raspberry Pi (환경센서, 카메라, 릴레이 제어)
-├── greenlink_ubuntu/    # Ubuntu AI Worker (FastAPI, OpenAI 이미지 변환)
+├── scripts/             # 운영 스크립트 (IoT 초기 구성)
 └── docs/                # 기준 문서, 시스템 다이어그램, 판넬 자료
 ```
 
@@ -196,9 +186,8 @@ greenlink/
 - `FRONTEND.md` — Flutter 앱
 - `ESP.md` — ESP32 펌웨어
 - `PI.md` — Raspberry Pi
-- `UBUNTU_GREENLINK_AI.md` — AI Worker
 - `DEPLOYMENT.md` — 학교 서버(winserver WSL Docker + Cloudflare 터널) 백엔드 배포 절차
-- `INFRASTRUCTURE_SETUP_GUIDE.md` — 서버·DB·S3·IAM·DNS·TLS·OAuth·OpenAI·IoT 신규 구축 및 운영 절차
+- `INFRASTRUCTURE_SETUP_GUIDE.md` — (참고용, AWS 기준 구 가이드) 서버·DB·DNS·TLS·OAuth·IoT 구축 절차
 - `API_SPECIFICATION.md` — REST API 명세
 - `FUNCTIONAL_SPECIFICATION.md` — 기능 명세
 
@@ -206,23 +195,18 @@ greenlink/
 
 ## ✅ 현재 코드 검증 기준
 
-2026-07-24 소스 기준으로 다음을 확인했습니다.
+2026-11-02 기준으로 다음을 확인했습니다.
 
-- Backend: H2 테스트 프로필을 사용한 테스트 17개 통과, `bootJar` 생성 성공
-- Ubuntu AI Worker: Python unittest 13개 통과
-- Raspberry Pi: WATER 지속시간/worker unit test 5개 통과
-- Flutter: 저장소에 테스트 13개가 있으며, 현재 검증 환경에는 Flutter/Dart SDK가 없어 실행하지 못함
-- 인증·출석·월간 퀘스트 만료·식물 상태 갱신·API 응답 계약·민감한 요청 body 로그를 실제 코드와 맞춤
+- Backend: H2 테스트 프로필 테스트 통과, Docker 이미지 빌드·기동, 운영 서버(`greenlink.likepigs.shop`) 외부 접속 확인
+- Flutter: `flutter analyze` 에러 0, 테스트 통과
+- Raspberry Pi: 급수 시간 검증·릴레이·명령 워커 unit test 통과 (GPIO 실물 시험은 별도)
+- ESP32: PlatformIO 빌드 성공 (실기기 시험은 별도)
 
 현재 Backend와 Pi는 WATER 명령을 모두 **0초 초과, 1초 이하**로 제한하는 fail-closed 정책을 적용합니다. `durationSeconds` key가 아예 없을 때만 Pi가 1초를 사용하며, null·문자열·boolean·비유한 수·0 이하·1초 초과 값은 펌프를 켜기 전에 거부하고 명령을 `FAILED`로 보고합니다. 1초는 물리적으로 검증된 최종값이 아니라 실측 전 보수적인 소프트웨어 상한이므로, 펌프 유량과 화분별 안전 급수량을 측정하기 전에는 늘리지 않는 것이 좋습니다. 자세한 산정 방법은 [Raspberry Pi 문서](./docs/PI.md)를 참고하세요.
 
-AI Worker는 설정된 `S3_BUCKET`·`AWS_REGION`으로 만든 정확한 virtual-host HTTPS URL과 `greenlink/userplant/` 아래 단일 이미지 key만 받아 boto3 `get_object()`로 직접 읽습니다. 확장자와 S3 `ContentType`, `ContentLength`, 실제 stream 길이를 대조하고 원본 크기를 20MiB로 제한합니다. boto3 기본 credential provider chain을 사용하므로 Worker 실행 주체에 해당 원본 prefix의 `s3:GetObject`가 허용되어 있으면 사용할 수 있지만, 저장소에는 배포 IAM 정책이 없고 이 검증 환경에서는 AWS live 요청을 실행하지 못했으므로 실제 권한은 운영 서버에서 확인해야 합니다.
-
-새 bucket으로 재구성할 때 현재 HTTPS virtual-host URL 계약에 맞게 점(`.`)이 없는 bucket 이름을 선택하고, Backend와 Worker에 동일한 `S3_BUCKET`·`AWS_REGION`을 주입합니다. Backend에는 원본 prefix의 `s3:PutObject`, Worker에는 원본 prefix의 `s3:GetObject`와 AI 결과 prefix의 `s3:PutObject`만 부여합니다. 단, Backend와 Worker가 반환하는 URL은 서명되지 않은 S3 URL이므로 private bucket에서 Flutter가 `Image.network`로 표시하는 문제는 별도의 presigned URL·인증 proxy·CDN 설계가 필요합니다. 운영 smoke 절차는 [AI Worker 문서](./docs/UBUNTU_GREENLINK_AI.md)를 참고하세요.
-
 ## 🚀 실행 방법
 
-> 실행 전, 각 모듈에서 필요한 값(JWT secret, DB 접속, S3 자격증명, OAuth 키, OpenAI API 키, 장치 키 등)을 **외부 설정**으로 주입해야 합니다. 현재 소스와 설정에는 운영 URL·키·자격 정보 계열 값이 일부 포함되어 있으므로, 배포 전 외부화하고 노출 가능성이 있는 값은 교체해야 합니다. 문서에는 실제 값을 기록하지 않습니다.
+> 실행 전, 각 모듈에서 필요한 값(JWT secret, DB 접속, OAuth 키, 장치 키 등)을 **외부 설정**으로 주입해야 합니다. 현재 소스와 설정에는 운영 URL·키·자격 정보 계열 값이 일부 포함되어 있으므로, 배포 전 외부화하고 노출 가능성이 있는 값은 교체해야 합니다. 문서에는 실제 값을 기록하지 않습니다.
 
 ### 1. Backend (Spring Boot)
 
@@ -233,7 +217,7 @@ cd greenlink_back
 ./gradlew build         # JAR 빌드
 ```
 
-**필요 설정**: MySQL 접속 정보, JWT secret, `S3_BUCKET`, `AWS_REGION`, AWS 기본 credential provider chain으로 공급되는 실행 자격 증명, OAuth 클라이언트 설정
+**필요 설정**: MySQL 접속 정보, JWT secret, OAuth 클라이언트 설정, 사진 저장 폴더(`GREENLINK_IMAGE_DIR`, 기본 `./data/images`). 운영 배포는 [DEPLOYMENT.md](./docs/DEPLOYMENT.md) 참고
 
 **최초 기동**: 빈 DB면 기본 식물(바질)과 가입 지급 아이템(바질 씨앗, 기본 화분)이 자동 생성됩니다. ADMIN이 한 명도 없을 때 `GREENLINK_BOOTSTRAP_ADMIN_EMAIL`·`GREENLINK_BOOTSTRAP_ADMIN_PASSWORD`(12자 이상)를 주면 최초 관리자가 생성되며, 생성 후에는 두 환경변수를 제거합니다.
 
@@ -282,19 +266,6 @@ python3 command_worker.py
 
 **필요 설정**: 서버 endpoint, 장치 키, 식물 ID(`GREENLINK_USER_PLANT_ID`), 펌프 GPIO(`GREENLINK_PUMP_GPIO`, 기본 22). 재배기 1대에 식물 1개를 기준으로 하며 카메라는 전체 화면을 사용합니다. (`greenlink.env.example` 참고)
 
-### 5. Ubuntu AI Worker (FastAPI)
-
-```bash
-cd greenlink_ubuntu
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install fastapi uvicorn rembg pillow numpy openai boto3 requests python-dotenv
-
-uvicorn ai_worker_api:app --host 0.0.0.0 --port 9000
-```
-
-**필요 설정**: OpenAI API key, `S3_BUCKET`, `AWS_REGION`, AWS 기본 credential provider chain으로 공급되는 실행 자격 증명, Backend callback URL
-
 ---
 
 ## 📊 구현 현황
@@ -308,9 +279,9 @@ uvicorn ai_worker_api:app --host 0.0.0.0 --port 9000
 | ESP32 토양수분 측정 | ✅ 구현 완료 | 10분 주기 |
 | Pi 환경 센서 / 카메라 스트림 | ✅ 구현 완료 | DHT22, BH1750, MJPEG |
 | 수동 / 자동 물주기 · 조명 | ⚠️ 부분 구현 | DeviceCommand 기반, Backend/Pi 양쪽 WATER 1초 상한 적용. 물리 유량 보정 필요 |
-| AI 이미지 변환 (OpenAI + rembg) | ⚠️ 부분 구현 | 검증된 S3 원본 직접 읽기/결과 저장 구현. `/process` 인증·live IAM·private 이미지 전달 검증 필요 |
-| Admin Dashboard | ⚠️ 부분 구현 | Thymeleaf 및 JWT cookie 로그인, CSRF/HttpOnly 정책 검토 필요 |
-| Nginx + HTTPS 배포 | ⚠️ 재구축 필요 | 현재 서버가 없으며 신규 DNS·TLS·서비스 운영 설정이 필요 |
+| 일일 식물 사진 썸네일 | ✅ 구현 완료 | 매일 09:00 캡처, 서버 디스크 저장, 30일 보관 |
+| Admin Dashboard | ✅ 구현 완료 | 운영 현황 대시보드, HttpOnly cookie 로그인 |
+| 서버 배포 | ✅ 운영 중 | 학교 서버 Docker + Cloudflare Tunnel (`greenlink.likepigs.shop`) |
 
 ---
 
@@ -349,7 +320,7 @@ uvicorn ai_worker_api:app --host 0.0.0.0 --port 9000
 - 📱 [프론트엔드 분석](./docs/FRONTEND.md)
 - 🔌 [ESP32 펌웨어](./docs/ESP.md)
 - 🍓 [Raspberry Pi](./docs/PI.md)
-- 🐧 [AI Worker](./docs/UBUNTU_GREENLINK_AI.md)
+- 🚀 [배포 가이드](./docs/DEPLOYMENT.md)
 - 🏗️ [신규 인프라 구축·운영 가이드](./docs/INFRASTRUCTURE_SETUP_GUIDE.md)
 - 🔗 [API 명세](./docs/API_SPECIFICATION.md)
 - 📋 [기능 명세](./docs/FUNCTIONAL_SPECIFICATION.md)

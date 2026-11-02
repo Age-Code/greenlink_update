@@ -32,7 +32,7 @@ public class IotDeviceDataService {
     private final PlantImageRepository plantImageRepository;
     private final UserPlantRepository userPlantRepository;
     private final GrowSpacePlantRepository growSpacePlantRepository;
-    private final S3UploadService s3UploadService;
+    private final ImageStorageService imageStorageService;
     private final AutomationService automationService;
 
     // save Raspberry Environment 저장
@@ -139,7 +139,7 @@ public class IotDeviceDataService {
             }
         }
 
-        String imageUrl = s3UploadService.uploadUserPlantImage(file, userPlantId);
+        String imageUrl = imageStorageService.storeUserPlantImage(file, userPlantId);
         String originalFilename = file.getOriginalFilename();
 
         PlantImage plantImage = PlantImage.create(

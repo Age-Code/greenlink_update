@@ -18,6 +18,9 @@ services:
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
       JAVA_TOOL_OPTIONS: "-Xmx512m"
       TZ: Asia/Seoul
+      GREENLINK_IMAGE_DIR: /data/images
+    volumes:
+      - images:/data/images            # 매일 캡처한 식물 사진 (보관 기간 지난 사진은 자동 정리)
     mem_limit: 768m
 
   db:
@@ -43,3 +46,4 @@ services:
 
 volumes:
   db_data:
+  images:

@@ -6,11 +6,15 @@ import com.greenlink.greenlink.domain.iot.PlantImage;
 import com.greenlink.greenlink.domain.plant.UserPlant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 // PlantImageRepository — JPA 데이터 접근
 public interface PlantImageRepository extends JpaRepository<PlantImage, Long> {
+
+    // 보관 기간 정리 대상 — 오래된 사진부터가 아니라 최신순(소유자별 최신 판별에 유리)
+    List<PlantImage> findAllByCapturedAtBeforeAndDeletedFalseOrderByCapturedAtDesc(LocalDateTime cutoff);
 
     // find By Id And Deleted False 조회 — JPA query method
     Optional<PlantImage> findByIdAndDeletedFalse(Long id);

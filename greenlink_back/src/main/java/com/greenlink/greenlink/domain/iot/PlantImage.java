@@ -96,6 +96,11 @@ public class PlantImage {
         return this.userPlant != null;
     }
 
+    // 보관 기간 정리 — 파일 삭제와 함께 soft delete
+    public void markDeleted() {
+        this.deleted = true;
+    }
+
     // 생성 시각 초기화
     @PrePersist
     public void prePersist() {

@@ -24,11 +24,6 @@ SERVER_ENVIRONMENT_URL = f"{BASE_URL}/api/iot/raspberry/environment"
 SERVER_IMAGE_URL = f"{BASE_URL}/api/iot/plant-images"
 SERVER_PENDING_COMMAND_URL = f"{BASE_URL}/api/iot/commands/pending"
 
-# AI Worker 서버
-AI_WORKER_URL = _require_env("GREENLINK_AI_WORKER_URL")
-
-# AI Worker /process 인증용 공유 secret — Worker의 AI_PROCESS_SECRET과 동일해야 한다.
-AI_PROCESS_SECRET = _require_env("GREENLINK_AI_PROCESS_SECRET")
 
 
 # 식물 ID 설정

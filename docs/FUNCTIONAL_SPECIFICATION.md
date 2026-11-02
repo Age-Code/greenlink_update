@@ -1,3 +1,5 @@
+> **2026-11 변경**: AI 이미지 변환(OpenAI + rembg, Ubuntu AI Worker, `/api/ai/**`, `AiPlantImage`)과 AWS S3 저장은 제거되었습니다. 현재는 Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드하고, 백엔드가 서버 디스크(Docker 볼륨)에 저장해 `/images/**`로 제공하며 앱 썸네일로 씁니다. 재배기 1대 = 식물 1개 구성입니다. 아래 본문의 AI/S3 관련 내용은 이전 구성 기록입니다.
+
 # GreenLink 기능 명세서
 
 ## 1. 문서 목적과 범위
@@ -10,7 +12,6 @@
 | Backend | 계정, 마스터/사용자 데이터, 장치 구성, 센서 저장, 명령 생성, 자동화, AI 결과 저장 |
 | ESP32 | 토양 수분 측정과 직접 서버 전송 |
 | Raspberry Pi | 환경 센서, 카메라 stream/업로드, 펌프/조명 실행, AI 작업 요청 |
-| Ubuntu AI Worker | 원본 사진의 배경 제거/스타일 변환/저장 및 결과 callback |
 
 API의 필드와 HTTP 계약은 별도 문서 [API_SPECIFICATION.md](API_SPECIFICATION.md)를 참조합니다.
 
@@ -34,9 +35,7 @@ GreenLink는 사용자가 앱에서 가상 육성 흐름과 실제 식물 재배
 | 관리자 | 마스터 데이터 생성, 관리자 웹 관리 화면 | ADMIN JWT 권한 전제 |
 | ESP32 센서 장치 | 토양 수분 전송 | 장치 키 |
 | Raspberry Pi 장치 | 환경값/이미지 전송, 명령 조회 및 결과 보고, 영상 stream 제공 | Backend 요청은 장치 키; stream 보호는 확인되지 않음 |
-| Ubuntu AI Worker | 이미지 처리 접수, 변환 결과 callback | Backend callback은 `X-AI-Worker-Secret` shared secret header로 검증 |
 | 외부 OAuth 제공자 | 로그인 사용자 프로필 제공 | OAuth 설정 필요 |
-| 외부 이미지/객체 저장 서비스 | 원본/결과 이미지 저장 및 AI 변환 | 별도 자격 증명 필요 |
 
 ## 4. 전체 기능 흐름
 
@@ -54,7 +53,6 @@ flowchart TD
     Auto --> Cmd
     Cmd --> PI
     PI --> Physical[펌프/조명 실행 및 완료 보고]
-    PI --> AI[AI 이미지 작업 요청]
     AI --> Back
     Grow --> Harvest[수확]
     Harvest --> Collection[도감 반영]
@@ -81,7 +79,6 @@ flowchart TD
 | F-CONTROL-01 | 수동 물주기/조명 | 사용자/Pi | 구현됨 | `IotAppService`, `command_worker.py` |
 | F-AUTO-01 | 자동 물주기/조명 | Backend/Pi | 구현됨 | `AutomationService` |
 | F-AUTO-02 | 데이터 기반 자동화 임계치 산출 | 사용자/Backend | 구현됨 | `AutomationLearningService` |
-| F-AI-01 | 사진 AI 스타일 변환 | Pi/AI Worker/App | 구현됨, 실패 복구 미확인 | AI Python 코드 |
 | F-ADMIN-01 | 마스터/사용자/장치 관리 | 관리자 | 부분 구현 | `AdminController`, `AdminWebController` |
 | F-GAP-01 | 센서 즉시 갱신 UI | 사용자/Pi | 구현됨 | Flutter 버튼, Backend refresh endpoint, `SENSOR_REFRESH` 명령, Pi 분기 |
 
@@ -283,8 +280,7 @@ ESP와 Pi 사이에 직접 통신하는 기능은 코드상 확인되지 않습�
 | --- | --- | --- |
 | 온도, 습도, 조도 | 공간별 최신 Pi 데이터 | 상태 카드 |
 | 토양 수분 raw/percent | 식물별 최신 ESP 데이터 | 상태/물 부족 또는 과습 안내 |
-| 원본 이미지 | Pi 사진 업로드 | 식물 사진 |
-| AI 이미지 | AI Worker 결과 callback | 존재 시 원본보다 우선 표시 가능 |
+| 일일 사진 | Pi 매일 09:00 캡처 업로드 | 홈·상세 썸네일 |
 | 실시간 영상 | Pi MJPEG stream | IoT 화면 영상 위젯 |
 
 Flutter가 사용하는 토양 안내 기준은 앱 코드의 상수 판정이며, Backend 자동 급수 설정값과 동일한 규칙이라고 보장되지는 않습니다.
@@ -386,56 +382,27 @@ Flutter IoT 화면의 새로고침 버튼은 `POST /api/user-plants/{id}/iot/ref
 
 Flutter의 `wateringSafetyEnabled` 설정은 Backend `AutomationSetting`에 저장됩니다. 과습 안전 모드가 켜져 있고 최신 토양수분이 `waterThresholdPercent + 10.0` 이상이면 수동 급수는 400 응답으로 차단합니다. 자동 급수는 먼저 학습 모델을 포함한 effective water threshold로 일반 불필요 조건을 검사하고, 이후 설정값 기반 safety threshold를 검사합니다. 기본/RULE_BASED에서는 safety 전용 분기가 사실상 도달하지 않으며, 학습 threshold가 safety threshold 이상일 때 경계 또는 일부 구간에서만 도달할 수 있습니다. 따라서 전용 skip 로그와 규칙 의미가 설정·모델 조합에 따라 달라집니다.
 
-## 13. 카메라 및 AI 이미지 기능
+## 13. 카메라와 일일 식물 사진
 
-### F-CAMERA-01 영상 stream과 원본 업로드
+### F-CAMERA-01 실시간 영상
 
 | 세부 기능 | 처리 |
 | --- | --- |
-| 실시간 영상 | Pi Flask 서버가 카메라 프레임을 MJPEG로 제공하고 Flutter가 직접 byte stream을 파싱하여 표시 |
-| 식물 crop | Pi 설정의 crop 기준으로 전체 frame에서 식물별 이미지를 생성 |
-| 원본 업로드 | Pi가 장치 키와 multipart 이미지, 식물 ID/촬영 시각을 Backend에 전송 |
-| 저장 | Backend가 이미지 형식/크기를 검사하고 객체 저장소 URL과 `PlantImage`를 저장 |
+| 실시간 영상 | Pi Flask 서버가 카메라 전체 화면을 MJPEG로 제공하고 Flutter가 byte stream을 파싱해 표시 (재배기 1대 = 식물 1개) |
 
-**확인된 문제**
+* 영상 stream endpoint 자체 인증은 없으므로 공개 범위는 Cloudflare Access 등으로 제한합니다.
 
-* 영상 stream endpoint 인증 로직은 확인되지 않습니다.
-* 별도 `camera_snapshot_main.py` legacy 파일은 삭제 완료되었습니다.
-* 식물별 crop과 사용자 식물 매핑은 Pi 설정 코드에 고정되어 있습니다.
-
-### F-AI-01 이미지 AI 변환
+### F-CAMERA-02 일일 썸네일 사진
 
 | 항목 | 명세 |
 | --- | --- |
-| 시작 Trigger | Pi가 Backend 원본 이미지 업로드 성공 응답을 받은 후 AI Worker `/process` 요청 |
-| 접수 | Worker가 background task로 처리하고 즉시 `PROCESSING` 상태 응답 |
-| 입력 | Backend plant image ID, 사용자 식물 ID, 원본 URL, 선택 이름. 이름을 제공하면 1~100자의 문자·숫자·밑줄·하이픈만 허용 |
-| 전처리 | 원본 다운로드 후 `rembg` pretrained 모델로 배경 제거, 하단 비율을 화분 영역으로 투명 처리 |
-| 이미지 변환 | 전처리 식물과 스타일 참조 asset을 외부 image edit API에 전달 |
-| 결과 저장 | 최종 PNG를 객체 저장소에 업로드 |
-| 결과 연결 | Worker가 Backend AI result callback에 최종 URL을 전송 |
-| 앱 표시 | IoT 최신/사진 응답의 `aiImageUrl`이 있으면 UI에서 활용 |
-
-```mermaid
-flowchart LR
-    Pi[Pi Crop Image] -->|원본 업로드| Back[Backend PlantImage]
-    Back -->|ID와 원본 URL 응답| Pi
-    Pi -->|process 요청| Worker[AI Worker]
-    Worker --> Remove[배경/화분 영역 제거]
-    Remove --> Transform[스타일 변환]
-    Transform --> Store[최종 이미지 저장]
-    Store -->|결과 URL callback| Back
-    Back --> App[앱 AI 이미지 표시]
-```
-
-**실패/운영 제한**
-
-* AI worker background 작업의 영속 queue, 상태 조회, 실패 callback 및 자동 재시도는 확인되지 않습니다.
-* Pi에서 AI trigger가 실패하더라도 이미 완료된 원본 업로드는 취소되지 않습니다.
-* AI Worker `/process` endpoint 자체의 서비스 인증은 확인되지 않습니다.
-* Backend 결과 callback은 `X-AI-Worker-Secret` header를 인터셉터에서 검증합니다.
-* 작업 이름은 API 접수와 실제 처리 함수 양쪽에서 검증하여 경로 구분자 등을 거부합니다.
-* 성공한 작업은 Worker 로컬 중간 산출물을 정리하지만 처리 도중 실패한 경우의 정리와 복구는 확인되지 않습니다.
+| 시작 Trigger | Pi cron이 매일 09:00 `camera_main.py` 실행 (`crontab.example`) |
+| 캡처 | 로컬 `/stream.mjpg`에서 JPEG 프레임 한 장을 추출 (crop 없음) |
+| 업로드 | 장치 키와 multipart 이미지, 식물 ID, 촬영 시각을 Backend `/api/iot/plant-images`로 전송. 성공·실패와 무관하게 로컬 임시 파일 삭제 |
+| 저장 | Backend가 형식/크기/MIME을 검사하고 서버 디스크(`GREENLINK_IMAGE_DIR`)에 저장, `PlantImage`에 `/images/userplant/{파일명}` 경로 기록 |
+| 제공 | `/images/**`로 인증 없이 제공(30일 캐시). 파일명은 식물 ID·시각·난수라 추측이 어렵습니다 |
+| 앱 표시 | IoT 최신 상태의 `latestImage.imageUrl`을 서버 주소와 합쳐 홈·식물 상세 썸네일로 표시, 촬영 날짜 표시. 없으면 식물 기본 이미지 |
+| 보관 | 매일 04:00 보관 기간(기본 30일)이 지난 사진의 파일과 레코드를 정리하되 식물별 최신 사진은 남김 |
 
 ## 14. 관리자 기능
 
@@ -481,7 +448,6 @@ flowchart LR
 | 사용자 퀘스트 | `IN_PROGRESS`, `ACHIEVABLE`, `COMPLETED`, `EXPIRED` | 출석/수확/WATER 완료 진행, 기간 만료, 보상 수령 |
 | 장치 명령 | `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `CANCELLED` | 앱/자동화 생성, Pi 실행 보고 |
 | 자동화 모델 | `INSUFFICIENT_DATA`, `READY`, `FAILED` | 수동 학습 요청 |
-| AI 이미지 | 결과 상태 필드 포함 | AI callback 저장 |
 
 ### 데이터 이동 경로
 
@@ -490,7 +456,6 @@ flowchart LR
 | 토양 수분 | ESP32 | `EspSensorData` | 앱 상태, 자동 급수, 모델 산출 |
 | 온도/습도/조도 | Pi | `RaspberrySensorData` | 앱 상태, 자동 조명, 모델 산출 |
 | 원본 사진 | Pi | `PlantImage` + 객체 저장소 URL | 앱 이미지, AI 입력 |
-| AI 사진 | AI Worker | `AiPlantImage` + 결과 URL | 앱 이미지 |
 | 명령/결과 | Backend/Pi | `DeviceCommand` | GPIO 실행, 로그/모델 |
 | 자동화 판단 | Backend | `AutomationLog` | 앱 자동화 이력 |
 
@@ -514,7 +479,6 @@ flowchart LR
 | --- | --- | --- |
 | 높음 | 장치 키, 서버 주소, JWT/SDK/클라우드 설정은 소스 밖에서 주입하고 기존 노출값은 회전해야 함 | 각 영역 코드에 민감 설정 종류 존재 |
 | 높음 | IoT 구성 목록 권한을 제한해야 함 | Backend Service가 전체 목록을 반환 |
-| 높음 | AI worker 요청과 Backend callback의 서비스 인증을 운영 secret으로 관리해야 함 | Backend callback은 shared secret header를 검증하며, Worker `/process` 접근 통제는 별도 운영 정책 필요 |
 | 중간 | 앱 진단 로그에 개인정보나 인증 payload를 남기지 않아야 함 | 공통 `ApiClient`의 body/token 값 로그는 제거됨. URL/상태 및 일부 이메일 로그는 남음 |
 | 중간 | 영상 stream 접근 통제를 정의해야 함 | Pi stream route 인증 없음 |
 | 중간 | Pi/AI 작업의 systemd/cron, 재시작, 로그 보존 및 실패 재시도 정책을 명시해야 함 | 실행 스크립트만 있고 운영 정의 없음 |
@@ -537,7 +501,6 @@ flowchart LR
 | F-CAMERA-01 | 이미지 저장 서비스 | `MjpegStreamView`, 상세/IoT UI | Pi stream/camera/uploader |
 | F-CONTROL-01 | `IotAppService`, `IotCommandService`, `DeviceCommand` | `iot_status_page.dart` | Pi `command_worker.py`, `relay_control.py` |
 | F-AUTO-01/02 | `AutomationService`, `AutomationLearningService` | automation section/cards | ESP/Pi 센서 trigger |
-| F-AI-01 | `AiPlantImageService` | AI 이미지 표시 로직 | Pi AI trigger, Ubuntu worker |
 | F-ADMIN-01 | `AdminService`, admin controllers | - | - |
 
 ## 20. 정리 요약

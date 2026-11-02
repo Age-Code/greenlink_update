@@ -1,14 +1,13 @@
-# 이미지 업로드 — 백엔드 multipart POST 후 AI trigger
+# 이미지 업로드 — 백엔드 multipart POST (앱 썸네일용 사진)
 
 from pathlib import Path
 from datetime import datetime
 import requests
 
 from config import DEVICE_KEY, SERVER_IMAGE_URL
-from ai_trigger import trigger_ai_worker
 
 
-# 이미지 업로드 — Backend multipart POST 후 AI Worker 호출
+# 이미지 업로드 — Backend multipart POST
 def upload_image(
     image_path: Path,
     user_plant_id: int,
@@ -82,27 +81,6 @@ def upload_image(
     print(f"[IMAGE_UPLOAD] plantImageId: {plant_image_id}")
     print(f"[IMAGE_UPLOAD] userPlantId: {uploaded_user_plant_id}")
     print(f"[IMAGE_UPLOAD] imageUrl: {image_url}")
-
-    try:
-        ai_result = trigger_ai_worker(
-            plant_image_id=plant_image_id,
-            user_plant_id=uploaded_user_plant_id,
-            image_url=image_url,
-        )
-
-        print("[AI_TRIGGER] AI Worker 호출 성공")
-        print(f"[AI_TRIGGER] 결과: {ai_result}")
-
-        result["aiTriggerSuccess"] = True
-        result["aiTriggerResult"] = ai_result
-
-    except Exception as e:
-        print("[AI_TRIGGER] AI Worker 호출 실패")
-        print(f"[AI_TRIGGER] 오류: {e}")
-
-        # 사진 업로드 자체는 성공했으므로 여기서 전체 실패로 만들지는 않는다.
-        result["aiTriggerSuccess"] = False
-        result["aiTriggerError"] = str(e)
 
     return result
 

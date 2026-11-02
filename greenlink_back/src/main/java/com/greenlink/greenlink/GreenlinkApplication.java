@@ -2,11 +2,13 @@ package com.greenlink.greenlink;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.TimeZone;
 
 // GreenlinkApplication — GreenLink 백엔드 구성 요소
 @SpringBootApplication
+@EnableScheduling
 public class GreenlinkApplication {
 
     // 애플리케이션 실행

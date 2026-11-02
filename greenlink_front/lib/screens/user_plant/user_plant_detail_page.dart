@@ -226,12 +226,19 @@ class _UserPlantDetailPageState extends State<UserPlantDetailPage> {
     return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.ink));
   }
 
+  // 썸네일 라벨 — 캡처 사진이면 촬영 날짜, 아니면 기본 이미지
+  String _capturedLabel() {
+    final captured = DateTime.tryParse(_latestImageData?.capturedAt ?? '');
+    if (_latestImageData?.imageUrl == null || captured == null) return '기본 이미지';
+    return '${captured.month}월 ${captured.day}일 촬영';
+  }
+
   // 화면 섹션 렌더링
   Widget _buildMainCard(String statusMsg) {
-    final displayUrl = getDetailPlantImageUrl(
-      aiImageUrl: _latestImageData?.aiImageUrl,
-      originalImageUrl: _latestImageData?.imageUrl,
-    ) ?? _plant!.imageUrl;
+    final displayUrl = getPlantThumbnailUrl(
+      capturedImageUrl: _latestImageData?.imageUrl,
+      fallbackImageUrl: _plant!.imageUrl,
+    );
 
     return GreenlinkCard(
       borderRadius: 24,
@@ -270,7 +277,7 @@ class _UserPlantDetailPageState extends State<UserPlantDetailPage> {
                       border: Border.all(color: AppColors.hairline),
                     ),
                     child: Text(
-                      _latestImageData?.imageUrl != null ? 'Original Snapshot' : 'Plant Image',
+                      _capturedLabel(),
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.bodyMuted),
                     ),
                   ),

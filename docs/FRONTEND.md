@@ -1,5 +1,7 @@
 # Frontend 코드 분석
 
+> **2026-11 변경**: AI 이미지 변환(OpenAI + rembg, Ubuntu AI Worker, `/api/ai/**`, `AiPlantImage`)과 AWS S3 저장은 제거되었습니다. 현재는 Raspberry Pi가 매일 09:00 실시간 영상에서 한 장을 캡처해 업로드하고, 백엔드가 서버 디스크(Docker 볼륨)에 저장해 `/images/**`로 제공하며 앱 썸네일로 씁니다. 재배기 1대 = 식물 1개 구성입니다. 아래 본문의 AI/S3 관련 내용은 이전 구성 기록입니다.
+
 ## 분석 범위와 역할
 
 `greenlink_front/`는 Flutter 기반 사용자 애플리케이션입니다. 로그인 후 홈, 인벤토리, 컬렉션, 퀘스트/출석, 식물 상세와 IoT 제어 화면을 제공하고, HTTP API로 백엔드에 접근합니다. 또한 Raspberry Pi의 MJPEG 영상 스트림을 직접 재생합니다.

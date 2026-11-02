@@ -189,14 +189,12 @@ double? _toNullableDouble(dynamic value) {
 // PlantImageData — IoT API 모델
 class PlantImageData {
   final int? plantImageId;
-  final String imageUrl;
-  final String? aiImageUrl; // AI 변환 이미지 (없을 수 있음)
+  final String imageUrl; // 매일 영상에서 캡처한 사진 — 서버 상대 경로("/images/...")
   final String? capturedAt;
 
   PlantImageData({
     this.plantImageId,
     required this.imageUrl,
-    this.aiImageUrl,
     this.capturedAt,
   });
 
@@ -204,7 +202,6 @@ class PlantImageData {
   factory PlantImageData.fromJson(Map<String, dynamic> json) => PlantImageData(
     plantImageId: json['plantImageId'],
     imageUrl: json['imageUrl'] ?? '',
-    aiImageUrl: json['aiImageUrl'],
     capturedAt: json['capturedAt'],
   );
 }

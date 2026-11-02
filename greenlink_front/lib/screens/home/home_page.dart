@@ -477,9 +477,9 @@ class HomePageState extends State<HomePage> {
                       child: Builder(
                         builder: (context) {
                           final imgData = _latestImageData[plant.userPlantId];
-                          final displayUrl = getHomePlantImageUrl(
-                            aiImageUrl: imgData?.aiImageUrl,
-                            originalImageUrl: imgData?.imageUrl,
+                          final displayUrl = getPlantThumbnailUrl(
+                            capturedImageUrl: imgData?.imageUrl,
+                            fallbackImageUrl: plant.imageUrl,
                           );
                           if (displayUrl != null) {
                             return Padding(

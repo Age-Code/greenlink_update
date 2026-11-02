@@ -14,6 +14,10 @@ class ApiClient {
     'GREENLINK_API_BASE_URL',
     defaultValue: 'https://greenlink.likepigs.shop/api',
   );
+
+  // 사진 같은 서버 상대 경로("/images/...")를 붙일 서버 주소 — baseUrl에서 "/api"를 뺀 값
+  static String get serverOrigin =>
+      baseUrl.endsWith('/api') ? baseUrl.substring(0, baseUrl.length - 4) : baseUrl;
   final TokenStorage _tokenStorage = TokenStorage();
 
   // 요청 타임아웃 — 서버 무응답 시 무한 대기 방지

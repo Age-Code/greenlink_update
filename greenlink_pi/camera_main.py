@@ -29,7 +29,7 @@ def normalize_upload_result(result):
     return False, result, None
 
 
-# 식물 스냅샷 업로드 — 업로드 결과와 AI trigger 결과 로깅
+# 식물 스냅샷 업로드 — 업로드 결과 로깅
 def upload_snapshot(
     image_path,
     user_plant_id: int
@@ -71,7 +71,7 @@ def delete_file_if_exists(path):
 
 # 실행 진입점
 def main():
-    print("[CAMERA_MAIN] 아침 스냅샷 업로드 시작")
+    print("[CAMERA_MAIN] 일일 썸네일 스냅샷 업로드 시작")
     print(f"[CAMERA_MAIN] fullStreamUrl = {FULL_STREAM_URL}")
     print(f"[CAMERA_MAIN] userPlantId = {USER_PLANT_ID}")
 
@@ -96,7 +96,7 @@ def main():
         delete_file_if_exists(image_path)
 
     status = "성공" if success else "실패"
-    print(f"[CAMERA_MAIN] 아침 스냅샷 업로드 결과: {status}")
+    print(f"[CAMERA_MAIN] 일일 썸네일 스냅샷 업로드 결과: {status}")
 
 
 if __name__ == "__main__":

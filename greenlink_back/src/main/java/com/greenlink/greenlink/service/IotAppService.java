@@ -1,6 +1,5 @@
 package com.greenlink.greenlink.service;
 
-import com.greenlink.greenlink.domain.ai.AiPlantImage;
 import com.greenlink.greenlink.domain.automation.AutomationSetting;
 import com.greenlink.greenlink.domain.iot.CommandStatus;
 import com.greenlink.greenlink.domain.iot.CommandType;
@@ -16,7 +15,6 @@ import com.greenlink.greenlink.domain.iot.IotDevice;
 import com.greenlink.greenlink.domain.plant.UserPlant;
 import com.greenlink.greenlink.domain.user.User;
 import com.greenlink.greenlink.dto.iot.IotAppDto;
-import com.greenlink.greenlink.repository.AiPlantImageRepository;
 import com.greenlink.greenlink.repository.AutomationSettingRepository;
 import com.greenlink.greenlink.repository.DeviceCommandRepository;
 import com.greenlink.greenlink.repository.EspSensorDataRepository;
@@ -51,7 +49,6 @@ public class IotAppService {
     private final RaspberrySensorDataRepository raspberrySensorDataRepository;
     private final EspSensorDataRepository espSensorDataRepository;
     private final PlantImageRepository plantImageRepository;
-    private final AiPlantImageRepository aiPlantImageRepository;
     private final PumpChannelRepository pumpChannelRepository;
     private final DeviceCommandRepository deviceCommandRepository;
     private final IotDeviceRepository iotDeviceRepository;
@@ -90,14 +87,6 @@ public class IotAppService {
                                         .orElse(null)
                         );
 
-        AiPlantImage latestAiImage = null;
-
-        if (latestImage != null) {
-            latestAiImage = aiPlantImageRepository
-                    .findTopByPlantImageAndDeletedFalseOrderByIdDesc(latestImage)
-                    .orElse(null);
-        }
-
         DeviceCommand lastLightCommand = deviceCommandRepository
                 .findTopByGrowSpaceAndCommandTypeInAndCommandStatusAndDeletedFalseOrderByCompletedAtDesc(
                         growSpace,
@@ -123,7 +112,6 @@ public class IotAppService {
                 latestEnvironment,
                 latestSoil,
                 latestImage,
-                latestAiImage,
                 resolveWateringStatus(userPlant),
                 lastLightCommand,
                 recentCommands
@@ -183,16 +171,7 @@ public class IotAppService {
         return plantImageRepository
                 .findAllByUserPlantAndDeletedFalseOrderByCapturedAtDesc(userPlant)
                 .stream()
-                .map(plantImage -> {
-                    AiPlantImage aiPlantImage = aiPlantImageRepository
-                            .findTopByPlantImageAndDeletedFalseOrderByIdDesc(plantImage)
-                            .orElse(null);
-
-                    return IotAppDto.PlantImageDto.from(
-                            plantImage,
-                            aiPlantImage
-                    );
-                })
+                .map(IotAppDto.PlantImageDto::from)
                 .toList();
     }
 
