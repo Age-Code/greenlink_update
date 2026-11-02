@@ -1,0 +1,7 @@
+.git
+.gradle
+build
+.idea
+.env
+*.env
+src/main/resources/yaml/application-keys.yaml

@@ -23,9 +23,6 @@ spring:
       max-file-size: 20MB
       max-request-size: 20MB
 
-file:
-  upload-dir: uploads
-
 cloud:
   aws:
     region: ${AWS_REGION:ap-northeast-2}
@@ -47,3 +44,17 @@ jwt:
 greenlink:
   bootstrap:
     seed-default-data: ${GREENLINK_BOOTSTRAP_SEED_DEFAULT_DATA:true}
+
+# Cloudflare 터널(또는 Nginx) 뒤에서 X-Forwarded-Proto/Host를 신뢰해
+# 리다이렉트 URL이 https 공개 주소로 만들어지도록 한다.
+server:
+  forward-headers-strategy: framework
+
+# OAuth 공급자 endpoint는 공개 값이므로 기본값을 둔다. client-id/secret만 환경변수로 주입한다.
+oauth:
+  kakao:
+    token-uri: ${OAUTH_KAKAO_TOKEN_URI:https://kauth.kakao.com/oauth/token}
+    user-info-uri: ${OAUTH_KAKAO_USER_INFO_URI:https://kapi.kakao.com/v2/user/me}
+  google:
+    token-uri: ${OAUTH_GOOGLE_TOKEN_URI:https://oauth2.googleapis.com/token}
+    user-info-uri: ${OAUTH_GOOGLE_USER_INFO_URI:https://www.googleapis.com/oauth2/v3/userinfo}

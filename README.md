@@ -197,6 +197,7 @@ greenlink/
 - `ESP.md` — ESP32 펌웨어
 - `PI.md` — Raspberry Pi
 - `UBUNTU_GREENLINK_AI.md` — AI Worker
+- `DEPLOYMENT.md` — 학교 서버(winserver WSL Docker + Cloudflare 터널) 백엔드 배포 절차
 - `INFRASTRUCTURE_SETUP_GUIDE.md` — 서버·DB·S3·IAM·DNS·TLS·OAuth·OpenAI·IoT 신규 구축 및 운영 절차
 - `API_SPECIFICATION.md` — REST API 명세
 - `FUNCTIONAL_SPECIFICATION.md` — 기능 명세
