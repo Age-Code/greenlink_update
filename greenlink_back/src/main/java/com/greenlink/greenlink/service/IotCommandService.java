@@ -6,6 +6,7 @@ import com.greenlink.greenlink.domain.iot.DeviceCommand;
 import com.greenlink.greenlink.domain.iot.IotDevice;
 import com.greenlink.greenlink.domain.quest.TargetType;
 import com.greenlink.greenlink.dto.iot.IotDeviceDto;
+import com.greenlink.greenlink.repository.AutomationLogRepository;
 import com.greenlink.greenlink.repository.DeviceCommandRepository;
 import com.greenlink.greenlink.repository.IotDeviceRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class IotCommandService {
     private final IotDeviceRepository iotDeviceRepository;
     private final DeviceCommandRepository deviceCommandRepository;
     private final QuestProgressService questProgressService;
+    private final AutomationLogRepository automationLogRepository;
 
     // 라즈베리파이 대기 명령 조회 — X-DEVICE-KEY로 Pi 검증
     // Pi가 오래 꺼져 있다 돌아와도 지난 급수·조명 명령을 몰아서 실행하지 않도록
@@ -125,6 +127,11 @@ public class IotCommandService {
     // increase Watering Quest Progress If Needed 처리
     private void increaseWateringQuestProgressIfNeeded(DeviceCommand command) {
         if (command.getCommandType() != CommandType.WATER) {
+            return;
+        }
+
+        // 자동 급수는 사용자가 한 행동이 아니므로 "물 주기" 퀘스트에 넣지 않는다.
+        if (automationLogRepository.existsByCommandAndDeletedFalse(command)) {
             return;
         }
 

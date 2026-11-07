@@ -265,6 +265,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now greenlink-command greenlink-stream
 systemctl status greenlink-command greenlink-stream --no-pager
 crontab crontab.example        # 센서 10분마다, 썸네일 매일 09:00
+sudo cp logrotate.conf /etc/logrotate.d/greenlink   # *.log가 SD카드를 채우지 않게 주간 정리
 ```
 - 로그 보기: `journalctl -u greenlink-command -f`
 - 브라우저에서 `http://greenlink-pi.local:8000/`를 열어 카메라 영상이 나오는지 확인합니다.

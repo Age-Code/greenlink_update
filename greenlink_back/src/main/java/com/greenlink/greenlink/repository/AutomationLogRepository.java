@@ -2,6 +2,7 @@ package com.greenlink.greenlink.repository;
 
 import com.greenlink.greenlink.domain.automation.AutomationLog;
 import com.greenlink.greenlink.domain.automation.AutomationType;
+import com.greenlink.greenlink.domain.iot.DeviceCommand;
 import com.greenlink.greenlink.domain.plant.UserPlant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -11,6 +12,9 @@ import java.util.Optional;
 
 // AutomationLogRepository — JPA 데이터 접근
 public interface AutomationLogRepository extends JpaRepository<AutomationLog, Long> {
+
+    // 자동화가 만든 명령인지 — 자동 급수는 사용자 퀘스트(물 주기) 진행에 넣지 않는다.
+    boolean existsByCommandAndDeletedFalse(DeviceCommand command);
 
     // 같은 SKIP 사유 연속 저장 방지용 — 식물·유형별 마지막 로그
     Optional<AutomationLog> findTopByUserPlantAndAutomationTypeAndDeletedFalseOrderByIdDesc(

@@ -1,5 +1,6 @@
 // 앱 진입점 — Kakao SDK 초기화, 테마 적용
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kakao_flutter_sdk_common/kakao_flutter_sdk_common.dart';
 import 'core/network/api_client.dart';
@@ -14,6 +15,11 @@ bool _isRedirectingToLogin = false;
 void main() {
   // 플러그인(SharedPreferences, Kakao)을 runApp 전에 쓰므로 바인딩을 먼저 초기화한다.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // debugPrint는 릴리스 빌드에서도 기기 로그에 남는다. API 주소·응답 메시지가 노출되지 않게 릴리스에서는 끈다.
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
 
   // Kakao SDK 초기화 — 키를 바꾸면 AndroidManifest.xml·Info.plist·auth_service.dart도 함께 바꾼다.
   KakaoSdk.init(nativeAppKey: '20675888d2a1900e54cd1d88d75e4688');

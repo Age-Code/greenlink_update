@@ -189,6 +189,7 @@ greenlink/
 - `DEPLOYMENT.md` — 학교 서버(winserver WSL Docker + Cloudflare 터널) 백엔드 배포 절차
 - `INFRASTRUCTURE_SETUP_GUIDE.md` — (참고용, AWS 기준 구 가이드) 서버·DB·DNS·TLS·OAuth·IoT 구축 절차
 - `HARDWARE_WIRING.md` — 실제 하드웨어 배선(핀 번호)과 단계별 연결·점검 절차
+- `PROJECT_REVIEW.md` — 15가지 관점 점검 결과와 남은 권장 사항
 - `API_SPECIFICATION.md` — REST API 명세
 - `FUNCTIONAL_SPECIFICATION.md` — 기능 명세
 

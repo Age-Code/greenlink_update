@@ -1,6 +1,14 @@
 # GreenLink Backend 배포 — 학교 서버(WSL) Docker + Cloudflare 터널
 # 저장소 루트에서 실행: docker compose -f docker-compose.prod.yml up -d --build
 # 비밀값은 같은 폴더의 .env에 둔다 (.env.example 참고, 커밋 금지).
+
+# 컨테이너 로그가 디스크를 채우지 않도록 크기를 제한한다.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   app:
     build: ./greenlink_back
@@ -22,6 +30,7 @@ services:
     volumes:
       - images:/data/images            # 매일 캡처한 식물 사진 (보관 기간 지난 사진은 자동 정리)
     mem_limit: 768m
+    logging: *default-logging
 
   db:
     image: mysql:8.0
@@ -43,6 +52,7 @@ services:
       timeout: 5s
       retries: 12
     mem_limit: 512m
+    logging: *default-logging
 
 volumes:
   db_data:

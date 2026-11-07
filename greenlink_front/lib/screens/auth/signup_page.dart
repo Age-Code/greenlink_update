@@ -31,8 +31,18 @@ class _SignupPageState extends State<SignupPage> {
   // 회원가입 처리 — 성공 시 로그인 화면 복귀
   void _signup() async {
     if (_isLoading) return;
+
+    final email = _emailCtrl.text.trim();
+    final password = _passwordCtrl.text;
+    final nickname = _nicknameCtrl.text.trim();
+    final validationMessage = validateSignupInput(email, password, nickname);
+    if (validationMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(validationMessage)));
+      return;
+    }
+
     setState(() => _isLoading = true);
-    final res = await _authService.signup(_emailCtrl.text, _passwordCtrl.text, _nicknameCtrl.text);
+    final res = await _authService.signup(email, password, nickname);
     if (!mounted) return;
     setState(() => _isLoading = false);
 
@@ -84,4 +94,16 @@ class _SignupPageState extends State<SignupPage> {
       ),
     );
   }
+}
+
+// 회원가입 입력 검증 — 서버 규칙(이메일 형식, 비밀번호 8자 이상, 닉네임 1~50자)과 같다.
+// 문제가 없으면 null을 돌려준다.
+String? validateSignupInput(String email, String password, String nickname) {
+  final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+  if (!emailPattern.hasMatch(email)) return '올바른 이메일 주소를 입력해주세요.';
+  if (password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+  if (password.length > 100) return '비밀번호는 100자 이하여야 합니다.';
+  if (nickname.isEmpty) return '닉네임을 입력해주세요.';
+  if (nickname.length > 50) return '닉네임은 50자 이하여야 합니다.';
+  return null;
 }

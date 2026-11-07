@@ -13,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 // CollectionService — 비즈니스 로직 처리
 @Service
@@ -30,8 +33,21 @@ public class CollectionService {
 
         List<Plant> plants = plantRepository.findAllByDeletedFalse();
 
+        // 식물 종마다 수확 이력을 따로 조회하지 않고, 내 식물을 한 번 읽어 종별로 묶는다.
+        Map<Long, List<UserPlant>> harvestedByPlantId = userPlantRepository.findAllByUserAndDeletedFalse(user)
+                .stream()
+                .filter(userPlant -> userPlant.getStatus() == UserPlantStatus.HARVESTED)
+                .sorted(Comparator.comparing(
+                        UserPlant::getHarvestedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .collect(Collectors.groupingBy(userPlant -> userPlant.getPlant().getId()));
+
         return plants.stream()
-                .map(plant -> toCollectionListResponse(user, plant))
+                .map(plant -> toCollectionListResponse(
+                        plant,
+                        harvestedByPlantId.getOrDefault(plant.getId(), List.of())
+                ))
                 .toList();
     }
 
@@ -52,14 +68,7 @@ public class CollectionService {
     }
 
     // to Collection List Response 처리
-    private CollectionDto.ListResDto toCollectionListResponse(User user, Plant plant) {
-        List<UserPlant> harvestedPlants =
-                userPlantRepository.findAllByUserAndPlantAndStatusAndDeletedFalseOrderByHarvestedAtAsc(
-                        user,
-                        plant,
-                        UserPlantStatus.HARVESTED
-                );
-
+    private CollectionDto.ListResDto toCollectionListResponse(Plant plant, List<UserPlant> harvestedPlants) {
         boolean collected = !harvestedPlants.isEmpty();
         long harvestCount = harvestedPlants.size();
 
