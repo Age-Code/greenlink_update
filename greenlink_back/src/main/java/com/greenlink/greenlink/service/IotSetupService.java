@@ -33,6 +33,7 @@ public class IotSetupService {
     private final GrowSpacePlantRepository growSpacePlantRepository;
     private final IotDeviceRepository iotDeviceRepository;
     private final PumpChannelRepository pumpChannelRepository;
+    private final GrowerAssignmentService growerAssignmentService;
 
     // 재배 공간 생성
     @Transactional
@@ -86,6 +87,23 @@ public class IotSetupService {
         GrowSpacePlant savedGrowSpacePlant = growSpacePlantRepository.save(growSpacePlant);
 
         return IotSetupDto.GrowSpacePlantResDto.from(savedGrowSpacePlant);
+    }
+
+    // 재배기 담당 식물 교체 — 재배기 1대 = 식물 1개 기준
+    @Transactional
+    public IotSetupDto.GrowSpacePlantResDto replantGrowSpace(
+            Long growSpaceId,
+            IotSetupDto.ConnectPlantReqDto request
+    ) {
+        GrowSpace growSpace = growSpaceRepository.findByIdAndActiveTrueAndDeletedFalse(growSpaceId)
+                .orElseThrow(() -> new IllegalArgumentException("재배 공간을 찾을 수 없습니다."));
+
+        UserPlant userPlant = userPlantRepository.findByIdAndDeletedFalse(request.getUserPlantId())
+                .orElseThrow(() -> new IllegalArgumentException("연결할 식물을 찾을 수 없습니다."));
+
+        GrowSpacePlant connection = growerAssignmentService.moveGrowSpaceToPlant(growSpace, userPlant);
+
+        return IotSetupDto.GrowSpacePlantResDto.from(connection);
     }
 
     // 특정 재배 공간에 연결된 식물 목록 조회

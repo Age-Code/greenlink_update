@@ -187,12 +187,25 @@ class AutomationService {
   }
 }
 
-// 서버 시간값 변환 — HH:mm은 HH:mm:ss로 보정
-String toServerTimeValue(String? value, {String defaultValue = '00:00:00'}) {
+// 서버 시간값 변환 — "9:30", "09:30", "09:30:00"을 모두 HH:mm:ss로 맞춘다.
+// 형식이 틀리면 서버가 요청 전체를 거부하므로 기본값으로 대신한다.
+String toServerTimeValue(String? value, {String defaultValue = '08:00:00'}) {
   if (value == null || value.trim().isEmpty) return defaultValue;
-  final text = value.trim();
-  if (text.length == 5) return '$text:00';
-  return text;
+  final parts = value.trim().split(':');
+  if (parts.length < 2 || parts.length > 3) return defaultValue;
+
+  final numbers = parts.map(int.tryParse).toList();
+  if (numbers.any((n) => n == null)) return defaultValue;
+
+  final hour = numbers[0]!;
+  final minute = numbers[1]!;
+  final second = parts.length == 3 ? numbers[2]! : 0;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59) {
+    return defaultValue;
+  }
+
+  String pad(int n) => n.toString().padLeft(2, '0');
+  return '${pad(hour)}:${pad(minute)}:${pad(second)}';
 }
 
 // 시간 입력값 변환 — HH:mm:ss를 HH:mm으로 축약
@@ -250,15 +263,17 @@ Map<String, dynamic> buildAutomationPatchPayload({
     'wateringSafetyEnabled': wateringSafetyEnabled,
     'decisionMode': decisionMode.isEmpty ? 'HYBRID' : decisionMode,
     'minLearningDataCount': minDataCount < 1 ? 30 : minDataCount,
-    'waterThresholdPercent': parseDoubleOrDefault(waterThresholdPercent, 35.0),
+    'waterThresholdPercent':
+        parseDoubleOrDefault(waterThresholdPercent, 35.0).clamp(0.0, 100.0),
     'waterCooldownMinutes': parseIntOrDefault(waterCooldownMinutes, 30),
     'lightOnThresholdLux': lightOn,
     'lightOffThresholdLux': lightOff,
+    // 빈 값일 때 기본값은 서버 기본 설정(08:00~18:00)과 같게 맞춘다.
     'lightStartTime': toServerTimeValue(
       lightStartTime,
-      defaultValue: '00:00:00',
+      defaultValue: '08:00:00',
     ),
-    'lightEndTime': toServerTimeValue(lightEndTime, defaultValue: '23:59:00'),
+    'lightEndTime': toServerTimeValue(lightEndTime, defaultValue: '18:00:00'),
     'lightCooldownMinutes': parseIntOrDefault(lightCooldownMinutes, 10),
   };
 }

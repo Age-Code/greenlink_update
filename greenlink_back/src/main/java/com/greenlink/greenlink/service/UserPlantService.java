@@ -31,6 +31,7 @@ public class UserPlantService {
     private final UserItemRepository userItemRepository;
     private final UserPlantRepository userPlantRepository;
     private final QuestProgressService questProgressService;
+    private final GrowerAssignmentService growerAssignmentService;
 
     // create User Plant 생성
     @Transactional
@@ -64,6 +65,9 @@ public class UserPlantService {
         UserPlant savedUserPlant = userPlantRepository.save(userPlant);
 
         seedUserItem.useSeed();
+
+        // 수확이 끝난 재배기가 있으면 새 식물로 넘긴다. — ESP 센서·펌프·사진이 새 식물을 따라간다.
+        growerAssignmentService.transferHarvestedGrowerToNewPlant(user, savedUserPlant);
 
         return UserPlantDto.CreateResDto.from(savedUserPlant);
     }

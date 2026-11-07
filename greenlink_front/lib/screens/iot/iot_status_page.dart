@@ -105,12 +105,30 @@ class _IotStatusPageState extends State<IotStatusPage> {
       });
       _showWaterShortageSnackIfNeeded(latest);
       _scheduleCommandPollIfNeeded();
+    } else if (_status != null) {
+      // 이미 화면이 있으면 일시적인 실패로 전체를 오류 화면으로 바꾸지 않는다. — 카메라 스트림도 유지된다.
+      setState(() {
+        if (showLoading) _isLoading = false;
+      });
+      if (showLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res.message.isNotEmpty ? res.message : '상태를 새로고침하지 못했어요.')),
+        );
+      }
+      // 진행 중 명령을 기다리던 중이었다면 남은 횟수 안에서 다시 확인한다.
+      _scheduleCommandPollIfNeeded();
     } else {
       setState(() {
         if (showLoading) _isLoading = false;
         _errorMessage = res.message;
       });
     }
+  }
+
+  // 새 명령을 보낸 직후 — 진행 상태 polling 횟수를 처음부터 다시 센다.
+  void _restartCommandPolling() {
+    _commandPollTimer?.cancel();
+    _commandPollCount = 0;
   }
 
   // 센서 새로고침 요청 — 성공 시 2.5초 후 latest 재조회, 409면 스낵바
@@ -133,6 +151,7 @@ class _IotStatusPageState extends State<IotStatusPage> {
         if (!mounted) return;
 
         _hasShownWaterShortageNotice = false;
+        _restartCommandPolling();
         setState(() => _historyRefreshToken++);
         await _loadLatest(showLoading: false);
         return;
@@ -176,6 +195,7 @@ class _IotStatusPageState extends State<IotStatusPage> {
           : res.message,
       success: res.success,
     );
+    if (res.success) _restartCommandPolling();
     // 카메라 스트림 유지를 위해 로딩 화면 없이 재조회
     await _loadLatest(showLoading: false);
   }
@@ -192,7 +212,10 @@ class _IotStatusPageState extends State<IotStatusPage> {
           : res.message,
       success: res.success,
     );
-    if (res.success) await _loadLatest(showLoading: false);
+    if (res.success) {
+      _restartCommandPolling();
+      await _loadLatest(showLoading: false);
+    }
   }
 
   // 조명 끄기 요청 — 성공 시 최신 상태 재조회
@@ -207,7 +230,10 @@ class _IotStatusPageState extends State<IotStatusPage> {
           : res.message,
       success: res.success,
     );
-    if (res.success) await _loadLatest(showLoading: false);
+    if (res.success) {
+      _restartCommandPolling();
+      await _loadLatest(showLoading: false);
+    }
   }
 
   // 스낵바 표시 — 성공/오류 색상 분기

@@ -10,7 +10,7 @@ from config import DEVICE_KEY, SERVER_IMAGE_URL
 # 이미지 업로드 — Backend multipart POST
 def upload_image(
     image_path: Path,
-    user_plant_id: int,
+    user_plant_id: int | None,
 ):
 
     image_path = Path(image_path)
@@ -23,9 +23,12 @@ def upload_image(
     }
 
     data = {
-        "userPlantId": str(user_plant_id),
         "capturedAt": datetime.now().isoformat(timespec="seconds"),
     }
+
+    # 비어 있으면 Backend가 재배 공간에 연결된 현재 식물에 사진을 붙인다.
+    if user_plant_id is not None:
+        data["userPlantId"] = str(user_plant_id)
 
     print("[IMAGE_UPLOAD] 업로드 시작")
     print(f"[IMAGE_UPLOAD] image_path: {image_path}")
@@ -88,7 +91,7 @@ def upload_image(
 # 이미지 업로드 후 삭제 — Backend 업로드 성공 시 로컬 파일 제거
 def upload_image_and_delete_if_success(
     image_path: Path,
-    user_plant_id: int,
+    user_plant_id: int | None,
 ):
 
     image_path = Path(image_path)

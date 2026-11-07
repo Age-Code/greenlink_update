@@ -12,7 +12,10 @@ bool _isRedirectingToLogin = false;
 
 // 앱 실행 — Kakao SDK 초기화 후 runApp 호출
 void main() {
-  // Kakao SDK 초기화
+  // 플러그인(SharedPreferences, Kakao)을 runApp 전에 쓰므로 바인딩을 먼저 초기화한다.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Kakao SDK 초기화 — 키를 바꾸면 AndroidManifest.xml·Info.plist·auth_service.dart도 함께 바꾼다.
   KakaoSdk.init(nativeAppKey: '20675888d2a1900e54cd1d88d75e4688');
   ApiClient.onUnauthorized = () async {
     if (_isRedirectingToLogin) return;

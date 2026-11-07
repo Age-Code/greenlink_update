@@ -2,6 +2,7 @@ package com.greenlink.greenlink.service;
 
 import com.greenlink.greenlink.domain.automation.AutomationModel;
 import com.greenlink.greenlink.domain.automation.AutomationSetting;
+import com.greenlink.greenlink.domain.iot.CommandStatus;
 import com.greenlink.greenlink.domain.iot.CommandType;
 import com.greenlink.greenlink.domain.iot.DeviceCommand;
 import com.greenlink.greenlink.domain.iot.EspSensorData;
@@ -78,15 +79,22 @@ public class AutomationLearningService {
                         userPlant,
                         trainedFrom,
                         trainedTo
-                );
+                )
+                .stream()
+                .filter(data -> !data.isDeleted())
+                .toList();
 
+        // 실제로 물이 나간 급수만 학습에 쓴다. — 실패·취소된 명령까지 넣으면 회복량과 급수 기준이 왜곡된다.
         List<DeviceCommand> waterCommands =
                 deviceCommandRepository.findByUserPlantAndCommandTypeAndRequestedAtBetweenAndDeletedFalseOrderByRequestedAtAsc(
                         userPlant,
                         CommandType.WATER,
                         trainedFrom,
                         trainedTo
-                );
+                )
+                .stream()
+                .filter(command -> command.getCommandStatus() == CommandStatus.SUCCESS)
+                .toList();
 
         GrowSpace growSpace = findGrowSpaceByUserPlant(userPlant);
 
@@ -98,7 +106,10 @@ public class AutomationLearningService {
                             growSpace,
                             trainedFrom,
                             trainedTo
-                    );
+                    )
+                    .stream()
+                    .filter(data -> !data.isDeleted())
+                    .toList();
         }
 
         int soilDataCount = soilDataList.size();

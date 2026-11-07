@@ -275,7 +275,33 @@ public class AutomationSetting {
         }
     }
 
-    // create Default 생성
+    // 기존 설정 복사 — 재배기를 새 식물로 넘길 때 자동화 설정을 이어받는다.
+    public static AutomationSetting copyOf(
+            AutomationSetting source,
+            User user,
+            UserPlant userPlant
+    ) {
+        return AutomationSetting.builder()
+                .user(user)
+                .userPlant(userPlant)
+                .autoWaterEnabled(source.getAutoWaterEnabled())
+                .autoLightEnabled(source.getAutoLightEnabled())
+                .autoOptimizeEnabled(source.getAutoOptimizeEnabled())
+                .wateringSafetyEnabled(source.isWateringSafetyEnabled())
+                .decisionMode(source.getDecisionMode())
+                .minLearningDataCount(source.getMinLearningDataCount())
+                .waterThresholdPercent(source.getWaterThresholdPercent())
+                .waterCooldownMinutes(source.getWaterCooldownMinutes())
+                .lightOnThresholdLux(source.getLightOnThresholdLux())
+                .lightOffThresholdLux(source.getLightOffThresholdLux())
+                .lightStartTime(source.getLightStartTime())
+                .lightEndTime(source.getLightEndTime())
+                .lightCooldownMinutes(source.getLightCooldownMinutes())
+                .deleted(false)
+                .build();
+    }
+
+    // 기본 자동화 설정 생성
     public static AutomationSetting createDefault(
             User user,
             UserPlant userPlant

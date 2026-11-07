@@ -135,9 +135,10 @@ class _AutomationSectionState extends State<AutomationSection> {
       _isSavingSetting = true;
     });
 
+    // 안전모드만 즉시 저장한다. — 아직 "설정 저장"을 누르지 않은 다른 토글 변경은 서버에 보내지 않는다.
     final res = await _service.updateAutomationSetting(
       widget.userPlantId,
-      _currentSetting(),
+      _savedSettingWithSafety(enabled),
     );
 
     if (!mounted) return;
@@ -147,11 +148,7 @@ class _AutomationSectionState extends State<AutomationSection> {
     if (res.success && res.data != null) {
       setState(() {
         _setting = res.data;
-        _autoWaterEnabled = res.data!.autoWaterEnabled;
-        _autoLightEnabled = res.data!.autoLightEnabled;
-        _autoOptimizeEnabled = res.data!.autoOptimizeEnabled;
         _wateringSafetyEnabled = res.data!.wateringSafetyEnabled;
-        _decisionMode = res.data!.decisionMode;
       });
       _showSnack(enabled ? '급수 보호모드가 켜졌습니다.' : '급수 보호모드가 꺼졌습니다.');
       await _loadLogs();
@@ -185,6 +182,33 @@ class _AutomationSectionState extends State<AutomationSection> {
   }
 
   // 현재 자동화 설정 모델 생성 — 미조회 상태는 화면 값으로 보정
+  // 서버에 저장된 값 기준으로 안전모드만 바꾼 설정
+  AutomationSettingModel _savedSettingWithSafety(bool enabled) {
+    final saved = _setting;
+    if (saved == null) {
+      return _currentSetting();
+    }
+    return AutomationSettingModel(
+      automationSettingId: saved.automationSettingId,
+      userPlantId: saved.userPlantId,
+      autoWaterEnabled: saved.autoWaterEnabled,
+      autoLightEnabled: saved.autoLightEnabled,
+      autoOptimizeEnabled: saved.autoOptimizeEnabled,
+      wateringSafetyEnabled: enabled,
+      decisionMode: saved.decisionMode,
+      minLearningDataCount: saved.minLearningDataCount,
+      waterThresholdPercent: saved.waterThresholdPercent,
+      waterCooldownMinutes: saved.waterCooldownMinutes,
+      lightOnThresholdLux: saved.lightOnThresholdLux,
+      lightOffThresholdLux: saved.lightOffThresholdLux,
+      lightStartTime: saved.lightStartTime,
+      lightEndTime: saved.lightEndTime,
+      lightCooldownMinutes: saved.lightCooldownMinutes,
+      createdAt: saved.createdAt,
+      modifiedAt: saved.modifiedAt,
+    );
+  }
+
   AutomationSettingModel _currentSetting() {
     final base =
         _setting ??

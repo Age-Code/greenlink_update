@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 // IoT 명령 서비스 — Pi polling용 명령 조회, 상태 전환, WATERING 퀘스트 연결
@@ -20,11 +22,17 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class IotCommandService {
 
+    private static final String STALE_RESULT_MESSAGE = "장치가 제때 가져가지 않아 자동으로 취소되었습니다.";
+    private static final long CONNECTED_AT_TOUCH_MINUTES = 1;
+
     private final IotDeviceRepository iotDeviceRepository;
     private final DeviceCommandRepository deviceCommandRepository;
     private final QuestProgressService questProgressService;
 
     // 라즈베리파이 대기 명령 조회 — X-DEVICE-KEY로 Pi 검증
+    // Pi가 오래 꺼져 있다 돌아와도 지난 급수·조명 명령을 몰아서 실행하지 않도록
+    // 방치 기준(5분)을 넘긴 PENDING 명령은 내려주지 않고 CANCELLED로 정리한다.
+    @Transactional
     public List<IotDeviceDto.PendingCommandResDto> getPendingCommands(
             String deviceKey
     ) {
@@ -32,14 +40,36 @@ public class IotCommandService {
 
         validateRaspberryDevice(raspberryDevice);
 
-        return deviceCommandRepository
+        LocalDateTime now = LocalDateTime.now();
+        touchLastConnectedAt(raspberryDevice, now);
+
+        List<DeviceCommand> deliverable = new ArrayList<>();
+
+        for (DeviceCommand command : deviceCommandRepository
                 .findAllByIotDeviceAndCommandStatusAndDeletedFalseOrderByRequestedAtAsc(
                         raspberryDevice,
                         CommandStatus.PENDING
-                )
-                .stream()
+                )) {
+            if (command.isStale(now)) {
+                command.cancel(STALE_RESULT_MESSAGE);
+                continue;
+            }
+
+            deliverable.add(command);
+        }
+
+        return deliverable.stream()
                 .map(IotDeviceDto.PendingCommandResDto::from)
                 .toList();
+    }
+
+    // 명령 polling도 장치 접속으로 본다. — 3초마다 쓰지 않도록 1분 간격으로만 갱신한다.
+    private void touchLastConnectedAt(IotDevice device, LocalDateTime now) {
+        LocalDateTime last = device.getLastConnectedAt();
+
+        if (last == null || last.isBefore(now.minusMinutes(CONNECTED_AT_TOUCH_MINUTES))) {
+            device.updateLastConnectedAt();
+        }
     }
 
     // 명령 처리 시작 — PENDING → PROCESSING

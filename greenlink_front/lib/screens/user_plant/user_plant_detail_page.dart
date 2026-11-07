@@ -47,7 +47,11 @@ class _UserPlantDetailPageState extends State<UserPlantDetailPage> {
 
   // 데이터 로드 — API 호출 후 상태 반영
   Future<void> _loadDetail() async {
-    setState(() => _isLoading = true);
+    // 처음에만 전체 로딩 화면을 쓴다. 이름 변경 후 다시 불러올 때 화면 전체(자동화 섹션 포함)를
+    // 갈아끼우면 저장하지 않은 입력이 사라지고 API를 다시 호출하므로 기존 화면을 유지한다.
+    if (_plant == null) {
+      setState(() => _isLoading = true);
+    }
     final res = await _plantService.getUserPlantDetail(widget.userPlantId);
     if (!mounted) return;
 
@@ -453,10 +457,14 @@ class _UserPlantDetailPageState extends State<UserPlantDetailPage> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => IotStatusPage(userPlantId: widget.userPlantId, plantName: _plant?.nickname ?? '식물')),
-              ),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => IotStatusPage(userPlantId: widget.userPlantId, plantName: _plant?.nickname ?? '식물')),
+                );
+                // IoT 화면에서 물을 주거나 새로고침했을 수 있으므로 배너·썸네일을 다시 불러온다.
+                if (mounted) _loadLatestImage();
+              },
               icon: const Icon(Icons.monitor_heart_outlined, size: 18),
               label: const Text('IoT 상태 보기', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
               style: ElevatedButton.styleFrom(

@@ -32,7 +32,7 @@ def normalize_upload_result(result):
 # 식물 스냅샷 업로드 — 업로드 결과 로깅
 def upload_snapshot(
     image_path,
-    user_plant_id: int
+    user_plant_id: int | None
 ):
     print("[CAMERA_MAIN] 이미지 업로드 시작")
     print(f"[CAMERA_MAIN] imagePath = {image_path}")

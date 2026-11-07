@@ -2,6 +2,7 @@ package com.greenlink.greenlink.service;
 
 import com.greenlink.greenlink.domain.iot.EspSensorData;
 import com.greenlink.greenlink.domain.iot.GrowSpace;
+import com.greenlink.greenlink.domain.iot.GrowSpacePlant;
 import com.greenlink.greenlink.domain.iot.IotDevice;
 import com.greenlink.greenlink.domain.iot.PlantImage;
 import com.greenlink.greenlink.domain.iot.RaspberrySensorData;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 // IotDeviceDataService — 비즈니스 로직 처리
 @Service
@@ -123,23 +125,12 @@ public class IotDeviceDataService {
             throw new IllegalStateException("라즈베리파이에 연결된 재배 공간이 없습니다.");
         }
 
-        UserPlant userPlant = null;
+        UserPlant userPlant = resolveImagePlant(growSpace, userPlantId);
 
-        if (userPlantId != null) {
-            userPlant = userPlantRepository.findByIdAndDeletedFalse(userPlantId)
-                    .orElseThrow(() -> new IllegalArgumentException("이미지를 연결할 식물을 찾을 수 없습니다."));
-
-            boolean connected = growSpacePlantRepository.existsByGrowSpaceAndUserPlantAndDeletedFalse(
-                    growSpace,
-                    userPlant
-            );
-
-            if (!connected) {
-                throw new IllegalStateException("해당 식물은 라즈베리파이의 재배 공간에 연결되어 있지 않습니다.");
-            }
-        }
-
-        String imageUrl = imageStorageService.storeUserPlantImage(file, userPlantId);
+        String imageUrl = imageStorageService.storeUserPlantImage(
+                file,
+                userPlant == null ? null : userPlant.getId()
+        );
         String originalFilename = file.getOriginalFilename();
 
         PlantImage plantImage = PlantImage.create(
@@ -156,6 +147,37 @@ public class IotDeviceDataService {
         raspberryDevice.updateLastConnectedAt();
 
         return IotDeviceDto.PlantImageUploadResDto.from(savedPlantImage);
+    }
+
+    // 사진을 붙일 식물 결정
+    // 1) Pi가 보낸 userPlantId가 이 재배 공간에 연결돼 있으면 그 식물
+    // 2) 아니면 재배 공간에 연결된 식물이 하나뿐일 때 그 식물 — 재배기 1대 = 식물 1개 운영에서
+    //    새 식물을 심어도 Pi 설정(GREENLINK_USER_PLANT_ID)을 고치지 않아도 되게 한다.
+    // 3) 그래도 정할 수 없으면 userPlantId 없이 온 경우 공간 공용 사진, 잘못된 ID면 거부
+    private UserPlant resolveImagePlant(GrowSpace growSpace, Long userPlantId) {
+        if (userPlantId != null) {
+            UserPlant requested = userPlantRepository.findByIdAndDeletedFalse(userPlantId).orElse(null);
+
+            if (requested != null && growSpacePlantRepository.existsByGrowSpaceAndUserPlantAndDeletedFalse(
+                    growSpace,
+                    requested
+            )) {
+                return requested;
+            }
+        }
+
+        List<GrowSpacePlant> connected =
+                growSpacePlantRepository.findAllByGrowSpaceAndActiveTrueAndDeletedFalse(growSpace);
+
+        if (connected.size() == 1) {
+            return connected.get(0).getUserPlant();
+        }
+
+        if (userPlantId != null) {
+            throw new IllegalStateException("해당 식물은 라즈베리파이의 재배 공간에 연결되어 있지 않습니다.");
+        }
+
+        return null;
     }
 
     // find Active Device By Key 조회 — 없으면 예외 또는 Optional 반환

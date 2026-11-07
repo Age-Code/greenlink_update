@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <math.h>
 
 // =====================================================
@@ -296,9 +297,27 @@ bool sendSoilMoistureData(int soilRaw, double soilPercent) {
     ensureWiFiConnected();
 
     HTTPClient http;
+    WiFiClient plainClient;
+    WiFiClientSecure secureClient;
 
     http.setTimeout(5000);
-    http.begin(SERVER_URL);
+
+    // 운영 서버는 Cloudflare 터널 HTTPS(https://greenlink.likepigs.shop)다.
+    // ESP32에 루트 인증서를 넣고 갱신하기 어려워 인증서 검증은 생략한다(암호화는 유지).
+    // 장치 키가 헤더로 가므로 http:// 주소는 학교 내부망 점검용으로만 쓴다.
+    bool beginOk;
+    if (String(SERVER_URL).startsWith("https://")) {
+        secureClient.setInsecure();
+        beginOk = http.begin(secureClient, SERVER_URL);
+    } else {
+        beginOk = http.begin(plainClient, SERVER_URL);
+    }
+
+    if (!beginOk) {
+        Serial.println("[서버 전송 실패] SERVER_URL을 해석할 수 없습니다. secrets.ini를 확인하세요.");
+        return false;
+    }
+
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-DEVICE-KEY", DEVICE_KEY);
 

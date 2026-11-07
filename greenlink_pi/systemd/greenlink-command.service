@@ -1,0 +1,24 @@
+# GreenLink 명령 워커 — 3초마다 Backend 명령을 가져와 펌프/LED 릴레이를 제어한다.
+# 설치: sudo cp systemd/greenlink-command.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now greenlink-command
+[Unit]
+Description=GreenLink command worker (pump/LED relay)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=greenlink
+Group=gpio
+WorkingDirectory=/home/greenlink/greenlink
+EnvironmentFile=/home/greenlink/greenlink/greenlink.env
+ExecStart=/home/greenlink/greenlink/.venv/bin/python3 -u /home/greenlink/greenlink/command_worker.py
+# 종료 시 SIGTERM → 워커가 펌프·LED를 모두 끄고 끝난다.
+KillSignal=SIGTERM
+TimeoutStopSec=10
+Restart=always
+RestartSec=5
+SupplementaryGroups=gpio i2c
+
+[Install]
+WantedBy=multi-user.target

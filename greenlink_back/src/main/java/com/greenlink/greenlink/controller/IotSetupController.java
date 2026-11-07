@@ -56,6 +56,18 @@ public class IotSetupController {
         return ApiResponse.success("재배 공간에 식물이 연결되었습니다.", response);
     }
 
+    // 재배기 담당 식물 교체 — 기존 연결 해제 후 ESP32·펌프 채널을 새 식물로 옮긴다.
+    @PostMapping("/grow-spaces/{growSpaceId}/replant")
+    public ApiResponse<IotSetupDto.GrowSpacePlantResDto> replantGrowSpace(
+            @PathVariable Long growSpaceId,
+            @Valid @RequestBody IotSetupDto.ConnectPlantReqDto request
+    ) {
+        IotSetupDto.GrowSpacePlantResDto response =
+                iotSetupService.replantGrowSpace(growSpaceId, request);
+
+        return ApiResponse.success("재배기의 담당 식물이 교체되었습니다.", response);
+    }
+
     // 재배 공간에 연결된 식물 목록 조회
     @GetMapping("/grow-spaces/{growSpaceId}/plants")
     public ApiResponse<List<IotSetupDto.GrowSpacePlantResDto>> getGrowSpacePlants(
