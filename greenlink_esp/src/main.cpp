@@ -104,11 +104,20 @@ const int ADC_MAX_VALID_RAW = 4045;
 
 const int SAMPLE_COUNT = 10;
 
-// 테스트용: 10초마다 전송
-//const unsigned long SEND_INTERVAL_MS = 10UL * 1000UL;
+// 측정·전송 주기(초) — 기본 600초(10분).
+// 보정할 때만 secrets.ini에 -D GREENLINK_SEND_INTERVAL_SEC=30 을 넣어 짧게 하고, 끝나면 지운다.
+#ifndef GREENLINK_SEND_INTERVAL_SEC
+#define GREENLINK_SEND_INTERVAL_SEC 600
+#endif
 
-// 실제 운영용: 10분마다 전송
-const unsigned long SEND_INTERVAL_MS = 10UL * 60UL * 1000UL;
+const unsigned long SEND_INTERVAL_MS = (unsigned long)GREENLINK_SEND_INTERVAL_SEC * 1000UL;
+
+// Wi-Fi 송신 출력 — 기본 최대(19.5dBm)는 켜는 순간 전류가 커서 약한 USB 전원에서
+// "Brownout detector was triggered"로 재부팅을 반복할 수 있다. 공유기 근처에서는 11dBm이면 충분하다.
+// 신호가 약하면 secrets.ini에 -D GREENLINK_WIFI_TX_POWER=WIFI_POWER_15dBm 처럼 올린다.
+#ifndef GREENLINK_WIFI_TX_POWER
+#define GREENLINK_WIFI_TX_POWER WIFI_POWER_11dBm
+#endif
 
 unsigned long lastSendTime = 0;
 
@@ -151,6 +160,9 @@ void setup() {
 
     Serial.print("WET_RAW: ");
     Serial.println(WET_RAW);
+
+    Serial.print("SEND_INTERVAL_SEC: ");
+    Serial.println(GREENLINK_SEND_INTERVAL_SEC);
 
     if (DRY_RAW <= WET_RAW) {
         Serial.println("[ERROR] DRY_RAW는 WET_RAW보다 커야 합니다.");
@@ -416,6 +428,7 @@ void measureAndSend() {
 
 void connectWiFi() {
     WiFi.mode(WIFI_STA);
+    WiFi.setTxPower(GREENLINK_WIFI_TX_POWER);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     Serial.println();
