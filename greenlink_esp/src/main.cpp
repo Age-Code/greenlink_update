@@ -393,8 +393,14 @@ void measureAndSend() {
     int raw = readSoilRaw();
 
     if (!isSensorReadingValid(raw)) {
+#ifdef GREENLINK_DIAGNOSTIC_SEND
+        // 진단 모드 — 시리얼을 볼 수 없을 때 raw 값을 서버로 보내 원인을 확인한다.
+        // 범위 밖 값도 보내므로 진단하는 동안 앱의 자동 물 주기는 꺼 둔다.
+        Serial.println("[진단 모드] 범위 밖 값이지만 raw 확인을 위해 전송합니다.");
+#else
         Serial.println("[전송 생략] 센서 이탈 또는 고장으로 판단되어 이번 측정값을 보내지 않습니다.");
         return;
+#endif
     }
 
     double percent = convertRawToPercent(raw);
