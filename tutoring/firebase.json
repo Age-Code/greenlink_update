@@ -1,0 +1,73 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "tugether-a3dea",
+          "appId": "1:253763467877:android:d99af875ef08928b06648c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "tugether-a3dea",
+          "appId": "1:253763467877:ios:a4f7dbdaede0c3ca06648c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "tugether-a3dea",
+          "appId": "1:253763467877:ios:a4f7dbdaede0c3ca06648c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "tugether-a3dea",
+          "configurations": {
+            "android": "1:253763467877:android:d99af875ef08928b06648c",
+            "ios": "1:253763467877:ios:a4f7dbdaede0c3ca06648c",
+            "macos": "1:253763467877:ios:a4f7dbdaede0c3ca06648c",
+            "web": "1:253763467877:web:a03fe27cf4ccb0b306648c"
+          }
+        }
+      }
+    }
+  },
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  }
+}

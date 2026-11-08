@@ -1,0 +1,16 @@
+# Tugether 웹 배포 — 학교 서버(WSL) Docker + Cloudflare 터널
+# 이 폴더에서 실행: docker compose -f docker-compose.prod.yml up -d --build
+# Firebase 설정은 lib/firebase_options.dart 에 들어 있어 .env 가 필요 없다.
+
+services:
+  web:
+    build: .
+    restart: always
+    ports:
+      - "127.0.0.1:${TUTORING_PORT:-8086}:80"   # 서버포트:앱포트. 127.0.0.1 = 터널로만 공개
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

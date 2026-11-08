@@ -1,0 +1,16 @@
+.git
+.dart_tool
+.fvm
+.idea
+.vscode
+build
+android
+ios
+macos
+linux
+windows
+test
+firestore_rules_test
+Dockerfile
+docker-compose.prod.yml
+.env
