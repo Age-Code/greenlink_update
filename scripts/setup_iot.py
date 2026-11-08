@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PI_DEVICE_NAME = "greenlink-pi"
 ESP_DEVICE_NAME = "greenlink-esp"
 PUMP_CHANNEL_NAME = "pump-1"
+USER_AGENT = "GreenLink-Setup/1.0"
 
 
 def read_dotenv(path: Path) -> dict:
@@ -52,6 +53,8 @@ class Api:
         data = None if body is None else json.dumps(body).encode()
         request = urllib.request.Request(self.base_url + path, data=data, method=method)
         request.add_header("Content-Type", "application/json")
+        # 파이썬 기본 User-Agent(Python-urllib)는 Cloudflare Browser Integrity Check에 막힌다(error code 1010).
+        request.add_header("User-Agent", USER_AGENT)
         if self.token:
             request.add_header("Authorization", f"Bearer {self.token}")
         try:

@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 import requests
 
-from config import DEVICE_KEY, SERVER_IMAGE_URL
+from config import DEVICE_KEY, SERVER_IMAGE_URL, HTTP_USER_AGENT
 
 
 # 이미지 업로드 — Backend multipart POST
@@ -20,6 +20,7 @@ def upload_image(
 
     headers = {
         "X-DEVICE-KEY": DEVICE_KEY,
+        "User-Agent": HTTP_USER_AGENT,
     }
 
     data = {

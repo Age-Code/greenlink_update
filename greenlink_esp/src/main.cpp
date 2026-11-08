@@ -318,6 +318,8 @@ bool sendSoilMoistureData(int soilRaw, double soilPercent) {
         return false;
     }
 
+    // Cloudflare Browser Integrity Check(error code 1010)에 막히지 않도록 장치 이름을 User-Agent로 보낸다.
+    http.setUserAgent("GreenLink-ESP32/1.0");
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-DEVICE-KEY", DEVICE_KEY);
 

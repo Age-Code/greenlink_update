@@ -20,6 +20,9 @@ def _require_env(name: str) -> str:
 BASE_URL = _require_env("GREENLINK_BASE_URL")
 DEVICE_KEY = _require_env("GREENLINK_DEVICE_KEY")
 
+# requests 기본 User-Agent(python-requests)는 Cloudflare Browser Integrity Check에 막힐 수 있다(error code 1010).
+HTTP_USER_AGENT = "GreenLink-Pi/1.0"
+
 SERVER_ENVIRONMENT_URL = f"{BASE_URL}/api/iot/raspberry/environment"
 SERVER_IMAGE_URL = f"{BASE_URL}/api/iot/plant-images"
 SERVER_PENDING_COMMAND_URL = f"{BASE_URL}/api/iot/commands/pending"
