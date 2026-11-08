@@ -15,7 +15,7 @@
 
 | 구분 | 부품 | 비고 |
 |---|---|---|
-| 제어 | Raspberry Pi 4 (Raspberry Pi OS Bookworm 64-bit), microSD 16GB 이상, 정품 5V 3A 어댑터 | 사용자 계정 이름은 `greenlink`로 만듭니다(경로가 `/home/greenlink/greenlink`로 고정). |
+| 제어 | Raspberry Pi 4 또는 3 B+ (Raspberry Pi OS 64-bit, Bookworm·Trixie), microSD 16GB 이상, 정품 5V 3A 어댑터 | 사용자 계정 이름은 `greenlink`로 만듭니다(경로가 `/home/greenlink/greenlink`로 고정). |
 | 환경 센서 | DHT22(AM2302) 온습도 모듈 | 3핀 모듈 권장. 4핀 단품이면 10kΩ 저항 1개가 추가로 필요합니다. |
 | 조도 센서 | BH1750(GY-302) 모듈 | I2C 주소 0x23 |
 | 카메라 | Raspberry Pi Camera Module(v2/v3) + CSI 리본 케이블 | |
@@ -102,6 +102,15 @@ sudo apt update
 sudo apt install -y python3-picamera2 python3-smbus python3-gpiozero python3-lgpio i2c-tools python3-venv
 ```
 Bookworm은 카메라가 기본으로 켜져 있습니다(libcamera).
+
+### 3-3a. DHT22를 커널 드라이버로 읽기 (권장)
+파이썬이 GPIO 신호 타이밍을 직접 재는 방식(adafruit_dht)은 Pi 3처럼 느린 보드나 최신 OS에서 `A full buffer was not returned` 오류로 자주 실패합니다.
+커널 드라이버를 켜면 커널이 타이밍을 맞춰 읽고, `sensor_service.py`가 이를 자동으로 감지해 사용합니다.
+```bash
+echo 'dtoverlay=dht11,gpiopin=4' | sudo tee -a /boot/firmware/config.txt
+sudo reboot
+```
+재부팅 후 `cat /sys/bus/iio/devices/iio:device*/name`에 `dht11`이 보이면 적용된 것입니다. dht11 드라이버는 DHT22도 지원합니다.
 
 ### 3-3. ⚠️ 부팅 순간에도 펌프가 켜지지 않게 고정 (중요)
 GPIO22와 27은 Pi가 부팅될 때 기본값이 **LOW(풀다운)** 입니다. Low 트리거 릴레이는 LOW에서 **켜지기** 때문에, 그냥 두면 Pi를 켤 때마다 명령 워커가 뜨기 전 몇 초 동안 **펌프가 돌 수 있습니다**.
@@ -348,7 +357,7 @@ ESP32를 USB 5V 어댑터에 연결해 재배기 옆 물이 닿지 않는 곳에
 | 물 주기 버튼이 비활성 / "수분 충분" | 급수 보호모드가 켜져 있고 토양 수분이 기준+10% 이상입니다. 정상 동작입니다. |
 | 명령이 계속 "대기"로 남음 | `systemctl status greenlink-command`를 확인합니다. 5분이 지나면 자동 취소됩니다. |
 | `i2cdetect`에 23이 안 보임 | I2C가 꺼져 있거나(3-2) SDA·SCL 배선이 바뀌었습니다. |
-| 온습도가 None | DHT22 DATA는 GPIO4(물리 7번)입니다. 4핀 단품이면 10kΩ 풀업 저항이 필요합니다. |
+| 온습도가 None / `A full buffer was not returned` | DHT22 DATA는 GPIO4(물리 7번)입니다. 4핀 단품이면 10kΩ 풀업 저항이 필요합니다. 배선이 맞으면 3-3a의 커널 드라이버를 켭니다. |
 | 토양 수분이 항상 0% 또는 100% | `DRY_RAW`/`WET_RAW` 보정값이 실제 흙과 맞지 않습니다. 7-2를 다시 측정합니다. |
 | ESP 시리얼에 `[전송 생략]`만 나옴 | 센서가 흙에서 빠졌거나 AOUT이 GPIO34가 아닌 핀에 꽂혀 있습니다. |
 | 앱 카메라가 "불러올 수 없습니다" | `greenlink-stream` 서비스 상태와 Cloudflare 터널 주소를 확인합니다(6-6). |
