@@ -3,6 +3,8 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <math.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 // =====================================================
 // 1. Wi-Fi 및 서버 설정
@@ -144,6 +146,12 @@ void measureAndSend();
 // =====================================================
 
 void setup() {
+#ifdef GREENLINK_DISABLE_BROWNOUT
+    // Wi-Fi 무선을 켜는 순간의 짧은 전압 강하로 "Brownout detector was triggered" 리셋이 반복되는 보드용.
+    // 전원이 정말 부족한 상태를 감지하지 못하게 되므로, 좋은 USB 어댑터를 쓰는 것이 먼저다.
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+#endif
+
     Serial.begin(115200);
     delay(1000);
 
@@ -172,8 +180,8 @@ void setup() {
     analogReadResolution(12);
     analogSetPinAttenuation(SOIL_SENSOR_PIN, ADC_11db);
 
-    connectWiFi();
-
+    // 측정을 먼저 한다. — Wi-Fi 연결은 전송할 때(sendSoilMoistureData) 한다.
+    // 전원이 약해 Wi-Fi를 켜다 리셋되더라도 시리얼에 [RAW 평균]은 먼저 찍혀 보정에 쓸 수 있다.
     measureAndSend();
 
     lastSendTime = millis();
