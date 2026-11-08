@@ -1,8 +1,0 @@
-<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="100" height="132" viewBox="0 0 100 132" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="Avatar">
-<circle id="Halo" cx="48" cy="48" r="48" fill="#DDE6D6"/>
-<circle id="Hair" cx="49" cy="43" r="29" fill="#3B3431"/>
-<circle id="Face" cx="51" cy="49" r="20" fill="#FFD7C2"/>
-<rect id="Body" x="16" y="60" width="72" height="72" rx="18" fill="#6F8B65"/>
-</g>
-</svg>
