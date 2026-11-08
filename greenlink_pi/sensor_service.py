@@ -2,10 +2,9 @@
 
 import time
 import smbus
-import board
-import adafruit_dht
 
 from config import BH1750_I2C_BUS, BH1750_ADDR, DHT_GPIO
+from dht_reader import find_iio_dht, read_iio_dht
 
 
 BH1750_POWER_ON = 0x01
@@ -18,6 +17,8 @@ _bus = smbus.SMBus(BH1750_I2C_BUS)
 
 # DHT GPIO 매핑 — BCM 번호를 board 핀으로 변환
 def _get_dht_board_pin():
+    import board
+
     if DHT_GPIO == 4:
         return board.D4
     if DHT_GPIO == 17:
@@ -32,7 +33,15 @@ def _get_dht_board_pin():
     raise ValueError(f"지원하지 않는 DHT GPIO 번호입니다: {DHT_GPIO}")
 
 
-_dht = adafruit_dht.DHT22(_get_dht_board_pin(), use_pulseio=False)
+# 커널 드라이버(dtoverlay=dht11)가 있으면 그것을 쓰고, 없으면 adafruit_dht로 직접 읽는다.
+# 커널 드라이버가 GPIO를 잡고 있으면 adafruit_dht는 같은 핀을 쓸 수 없으므로 하나만 만든다.
+_dht_iio_device = find_iio_dht()
+_dht = None
+
+if _dht_iio_device is None:
+    import adafruit_dht
+
+    _dht = adafruit_dht.DHT22(_get_dht_board_pin(), use_pulseio=False)
 
 
 # BH1750 조도 측정 — lux 값을 소수 둘째 자리로 반환
@@ -70,6 +79,32 @@ def _is_valid_temp_hum(temp, hum) -> bool:
 
 # DHT22 온습도 측정 — 재시도 후 온도/습도 반환
 def read_dht22(max_retry: int = 5):
+    if _dht_iio_device is not None:
+        return _read_dht22_kernel(max_retry)
+
+    return _read_dht22_adafruit(max_retry)
+
+
+# 커널 드라이버로 읽기 — DHT22는 2초에 한 번만 측정되므로 실패하면 2초 쉬고 다시 읽는다.
+def _read_dht22_kernel(max_retry: int):
+    for attempt in range(max_retry):
+        try:
+            temp, hum = read_iio_dht(_dht_iio_device)
+
+            if _is_valid_temp_hum(temp, hum):
+                return round(temp, 1), round(hum, 1)
+
+            print(f"[DHT22] 유효하지 않은 값: temp={temp}, hum={hum}")
+
+        except (OSError, ValueError) as e:
+            print(f"[DHT22] 커널 드라이버 읽기 재시도 {attempt + 1}/{max_retry}: {e}")
+
+        time.sleep(2.0)
+
+    return None, None
+
+
+def _read_dht22_adafruit(max_retry: int):
     for attempt in range(max_retry):
         try:
             temp = _dht.temperature
@@ -83,7 +118,7 @@ def read_dht22(max_retry: int = 5):
         except RuntimeError as e:
             print(f"[DHT22] 읽기 재시도 {attempt + 1}/{max_retry}: {e}")
 
-        time.sleep(1.0)
+        time.sleep(2.0)
 
     return None, None
 
@@ -114,7 +149,8 @@ def read_all_sensors():
 # 센서 리소스 정리 — DHT/I2C close
 def cleanup_sensors():
     try:
-        _dht.exit()
+        if _dht is not None:
+            _dht.exit()
     except Exception:
         pass
 
