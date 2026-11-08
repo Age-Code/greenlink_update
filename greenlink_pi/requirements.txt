@@ -8,3 +8,8 @@ flask>=3.0
 pillow>=10.0
 adafruit-blinka>=8.0
 adafruit-circuitpython-dht>=4.0
+# Blinka가 Raspberry Pi에서 처음 import될 때 대화형으로 설치하려는 플랫폼 의존성.
+# 미리 설치해 두지 않으면 cron/systemd 실행 중 입력 대기로 멈출 수 있다.
+gpiod>=2.2.2,<3
+Adafruit-Blinka-Raspberry-Pi-PWM>=1.0.2
+rpi_ws281x>=4.0.0
