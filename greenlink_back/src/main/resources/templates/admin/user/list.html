@@ -28,6 +28,8 @@
                     <h1 class="h3 mb-2 text-gray-800">User Management</h1>
                     <p class="mb-4">Manage users and their roles.</p>
 
+                    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
                     <!-- DataTales Example -->
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">

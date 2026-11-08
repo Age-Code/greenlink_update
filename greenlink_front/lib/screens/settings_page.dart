@@ -33,12 +33,15 @@ class SettingsPage extends StatelessWidget {
 
     final successMessage = await showDialog<String>(
       context: context,
-      barrierDismissible: true,
+      // 요청 중에 바깥을 눌러 닫히면 서버는 비밀번호를 바꿨는데 화면은 그대로 남을 수 있다.
+      barrierDismissible: false,
       builder: (dialogContext) {
         bool isSubmitting = false;
 
         return StatefulBuilder(
-          builder: (ctx, setState) => Dialog(
+          builder: (ctx, setState) => PopScope(
+            canPop: !isSubmitting,
+            child: Dialog(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Form(
@@ -102,8 +105,8 @@ class SettingsPage extends StatelessWidget {
                         if (value == null || value.isEmpty) {
                           return '새 비밀번호를 입력해주세요.';
                         }
-                        if (value.length < 4) {
-                          return '새 비밀번호는 4자 이상이어야 합니다.';
+                        if (value.length < 8) {
+                          return '새 비밀번호는 8자 이상이어야 합니다.';
                         }
                         return null;
                       },
@@ -184,12 +187,16 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
           ),
+          ),
         );
       },
     );
 
-    currentPasswordController.dispose();
-    newPasswordController.dispose();
+    // 다이얼로그가 닫히는 애니메이션 동안 TextField가 컨트롤러를 아직 쓰므로 잠시 뒤에 정리한다.
+    Future.delayed(const Duration(milliseconds: 500), () {
+      currentPasswordController.dispose();
+      newPasswordController.dispose();
+    });
 
     if (successMessage == null || !context.mounted) return;
 

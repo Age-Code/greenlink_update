@@ -96,7 +96,13 @@ public class AdminService {
                     .orElseThrow(() -> new IllegalArgumentException("보상 아이템을 찾을 수 없습니다."));
         }
 
-        if (request.getRewardQuantity() > 0 && rewardItem == null) {
+        int rewardQuantity = request.getRewardQuantity() == null ? 0 : request.getRewardQuantity();
+
+        if (rewardQuantity < 0) {
+            throw new IllegalArgumentException("보상 수량은 0 이상이어야 합니다.");
+        }
+
+        if (rewardQuantity > 0 && rewardItem == null) {
             throw new IllegalArgumentException("보상 수량이 1개 이상이면 rewardItemId가 필요합니다.");
         }
 
@@ -107,7 +113,7 @@ public class AdminService {
                 request.getTargetType(),
                 request.getTargetValue(),
                 rewardItem,
-                request.getRewardQuantity(),
+                rewardQuantity,
                 request.getResetCycle());
 
         Quest savedQuest = questRepository.save(quest);
@@ -126,19 +132,35 @@ public class AdminService {
     }
 
     public com.greenlink.greenlink.domain.user.User getUser(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findByIdAndDeletedFalse(id).orElse(null);
     }
 
     // toggle User Role 처리
     @Transactional
-    public void toggleUserRole(Long id) {
-        userRepository.findById(id).ifPresent(com.greenlink.greenlink.domain.user.User::toggleRole);
+    // 자기 자신의 권한은 바꿀 수 없다. — 마지막 관리자가 스스로 강등해 관리자 화면에 들어올 수 없게 되는 것을 막는다.
+    public void toggleUserRole(Long actorUserId, Long targetUserId) {
+        if (actorUserId != null && actorUserId.equals(targetUserId)) {
+            throw new IllegalStateException("자기 자신의 권한은 변경할 수 없습니다.");
+        }
+
+        com.greenlink.greenlink.domain.user.User target = userRepository.findByIdAndDeletedFalse(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        target.toggleRole();
     }
 
     // delete User 삭제
     @Transactional
-    public void deleteUser(Long id) {
-        userRepository.findById(id).ifPresent(com.greenlink.greenlink.domain.user.User::delete);
+    // 회원 탈퇴와 같은 처리 — 이메일·소셜 ID를 비워 같은 이메일로 다시 가입할 수 있게 하고 기존 JWT를 무효화한다.
+    public void deleteUser(Long actorUserId, Long targetUserId) {
+        if (actorUserId != null && actorUserId.equals(targetUserId)) {
+            throw new IllegalStateException("자기 자신은 삭제할 수 없습니다.");
+        }
+
+        com.greenlink.greenlink.domain.user.User target = userRepository.findByIdAndDeletedFalse(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        target.withdraw();
     }
 
     public java.util.List<Plant> getAllPlants() {
@@ -170,7 +192,7 @@ public class AdminService {
             if (request.getGrowSpaceId() == null) {
                 throw new IllegalArgumentException("라즈베리파이는 GrowSpace ID가 필요합니다.");
             }
-            com.greenlink.greenlink.domain.iot.GrowSpace growSpace = growSpaceRepository.findByIdAndDeletedFalse(request.getGrowSpaceId())
+            com.greenlink.greenlink.domain.iot.GrowSpace growSpace = growSpaceRepository.findByIdAndActiveTrueAndDeletedFalse(request.getGrowSpaceId())
                     .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 GrowSpace ID입니다."));
             device = com.greenlink.greenlink.domain.iot.IotDevice.createRaspberryPi(growSpace, request.getDeviceName(), request.getDeviceKey());
         } else if (request.getDeviceType() == com.greenlink.greenlink.domain.iot.DeviceType.ESP32) {

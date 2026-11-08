@@ -102,10 +102,13 @@ def main():
         print(f"[REUSE] 재배 공간 {args.grow_space_name} (id={space['growSpaceId']})")
     grow_space_id = space["growSpaceId"]
 
-    # 2) 식물 연결
+    # 2) 식물 연결 — 재배기 1대 = 식물 1개. 다른 식물이 연결돼 있으면 새 식물로 교체(replant)한다.
     connected = api.call("GET", f"/iot/grow-spaces/{grow_space_id}/plants") or []
     if any(p.get("userPlantId") == args.user_plant_id for p in connected):
         print(f"[REUSE] 식물 {args.user_plant_id} 이미 연결됨")
+    elif connected:
+        api.call("POST", f"/iot/grow-spaces/{grow_space_id}/replant", {"userPlantId": args.user_plant_id})
+        print(f"[REPLANT] 재배기를 식물 {args.user_plant_id}로 교체 (ESP 센서·펌프 채널도 함께 이동)")
     else:
         api.call("POST", f"/iot/grow-spaces/{grow_space_id}/plants", {"userPlantId": args.user_plant_id})
         print(f"[CREATE] 식물 {args.user_plant_id} 연결")
@@ -128,10 +131,10 @@ def main():
     pi_id = ensure_device(PI_DEVICE_NAME, "RASPBERRY_PI", {"growSpaceId": grow_space_id})
     ensure_device(ESP_DEVICE_NAME, "ESP32", {"growSpaceId": grow_space_id, "userPlantId": args.user_plant_id})
 
-    # 4) 펌프 채널
+    # 4) 펌프 채널 — 재배 공간에 이미 펌프가 있으면 재사용한다(replant 때 새 식물로 이미 옮겨짐).
     channels = api.call("GET", "/iot/pump-channels") or []
-    if any(c.get("userPlantId") == args.user_plant_id for c in channels):
-        print(f"[REUSE] 식물 {args.user_plant_id} 펌프 채널 이미 있음")
+    if any(c.get("userPlantId") == args.user_plant_id or c.get("growSpaceId") == grow_space_id for c in channels):
+        print(f"[REUSE] 재배 공간 {args.grow_space_name} 펌프 채널 이미 있음")
     else:
         api.call("POST", "/iot/pump-channels", {
             "growSpaceId": grow_space_id,
@@ -152,7 +155,7 @@ def main():
             "# setup_iot.py가 생성 — 커밋 금지",
             f"GREENLINK_BASE_URL={args.base_url}",
             f"GREENLINK_DEVICE_KEY={pi_key}",
-            f"GREENLINK_USER_PLANT_ID={args.user_plant_id}",
+            "# 사진은 Backend가 이 재배기의 현재 식물에 붙인다. 수확 후 새로 심어도 고칠 필요 없음",
             f"GREENLINK_PUMP_GPIO={args.pump_gpio}",
             "",
         ]), True)

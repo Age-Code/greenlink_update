@@ -16,10 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // UserItemService — 비즈니스 로직 처리
 @Service
@@ -42,9 +42,18 @@ public class UserItemService {
 
         Map<Long, List<UserItem>> groupedByItemId = groupByItemId(userItems);
 
+        // 수량 집계는 필터와 무관하게 전체 보유 아이템 기준 — 아이템 종류마다 count 쿼리를 3번씩 보내지 않고 한 번에 계산한다.
+        Map<Long, Map<UserItemStatus, Long>> statusCountsByItemId =
+                userItemRepository.findAllByUserAndDeletedFalse(user)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                userItem -> userItem.getItem().getId(),
+                                Collectors.groupingBy(UserItem::getStatus, Collectors.counting())
+                        ));
+
         return groupedByItemId.values()
                 .stream()
-                .map(groupedItems -> toUserItemListResponse(user, groupedItems))
+                .map(groupedItems -> toUserItemListResponse(groupedItems, statusCountsByItemId))
                 .toList();
     }
 
@@ -164,32 +173,19 @@ public class UserItemService {
 
     // to User Item List Response 처리
     private UserItemDto.ListResDto toUserItemListResponse(
-            User user,
-            List<UserItem> groupedItems
+            List<UserItem> groupedItems,
+            Map<Long, Map<UserItemStatus, Long>> statusCountsByItemId
     ) {
         Item item = groupedItems.get(0).getItem();
+        Map<UserItemStatus, Long> counts = statusCountsByItemId.getOrDefault(item.getId(), Map.of());
 
-        long ownedCount = userItemRepository.countByUserAndItemAndStatusInAndDeletedFalse(
-                user,
-                item,
-                EnumSet.of(UserItemStatus.OWNED, UserItemStatus.EQUIPPED)
-        );
-
-        long usableCount = userItemRepository.countByUserAndItemAndStatusAndDeletedFalse(
-                user,
-                item,
-                UserItemStatus.OWNED
-        );
-
-        long usedCount = userItemRepository.countByUserAndItemAndStatusAndDeletedFalse(
-                user,
-                item,
-                UserItemStatus.USED
-        );
+        long usableCount = counts.getOrDefault(UserItemStatus.OWNED, 0L);
+        long equippedCount = counts.getOrDefault(UserItemStatus.EQUIPPED, 0L);
+        long usedCount = counts.getOrDefault(UserItemStatus.USED, 0L);
 
         return UserItemDto.ListResDto.of(
                 item,
-                ownedCount,
+                usableCount + equippedCount,
                 usableCount,
                 usedCount,
                 groupedItems

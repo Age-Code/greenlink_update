@@ -1,0 +1,49 @@
+# GreenLink CI — 푸시·PR마다 백엔드, 앱, 라즈베리파이 테스트를 돌린다.
+# 비밀값이 필요 없는 테스트만 실행한다(백엔드는 H2 test 프로필, Pi는 하드웨어 모듈을 mock).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: greenlink_back
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - run: chmod +x gradlew && ./gradlew test --no-daemon
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: greenlink_front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+
+  raspberry-pi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: greenlink_pi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -v

@@ -10,6 +10,7 @@ import com.greenlink.greenlink.repository.UserItemRepository;
 import com.greenlink.greenlink.repository.UserQuestRepository;
 import com.greenlink.greenlink.repository.UserRepository;
 import com.greenlink.greenlink.security.JwtTokenProvider;
+import com.greenlink.greenlink.security.LoginAttemptLimiter;
 import com.greenlink.greenlink.service.oauth.OAuthUserInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,8 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtTokenProvider jwtTokenProvider;
+    @Mock
+    private LoginAttemptLimiter loginAttemptLimiter;
 
     @InjectMocks
     private AuthService authService;

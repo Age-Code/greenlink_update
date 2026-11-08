@@ -33,6 +33,9 @@ class _LoginPageState extends State<LoginPage> {
 
   // 이메일 로그인 처리 — 성공 시 메인 화면 이동
   void _login() async {
+    // 키보드 엔터로도 호출되므로 요청 중 중복 실행을 막는다.
+    if (_isLoading) return;
+
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
 

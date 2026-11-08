@@ -97,9 +97,21 @@ curl -I https://greenlink.likepigs.shop/api/plants
    - 관리자 계정은 루트 `.env`의 `GREENLINK_BOOTSTRAP_ADMIN_*`를 읽습니다(이미 지웠다면 `GREENLINK_ADMIN_EMAIL`/`GREENLINK_ADMIN_PASSWORD` 환경변수로 전달).
    - 재배 공간 `greenlink-grower-1`, 장치 `greenlink-pi`·`greenlink-esp`, 펌프 채널(GPIO 22)을 만들고 장치 키를 무작위로 생성합니다. 여러 번 실행해도 중복 등록하지 않습니다.
    - 생성 파일(커밋 금지): `greenlink_pi/greenlink.env`, `greenlink_esp/secrets.ini`.
-3. **Raspberry Pi**: `greenlink_pi/greenlink.env`를 Pi의 `/home/greenlink/greenlink/greenlink.env`로 복사하고 서비스(`greenlink-command`, `greenlink-stream`)를 재시작합니다. cron은 `greenlink_pi/crontab.example`대로 등록합니다(센서 10분마다, **썸네일 캡처 매일 09:00**).
+3. **Raspberry Pi**: `greenlink_pi/greenlink.env`를 Pi의 `/home/greenlink/greenlink/greenlink.env`로 복사하고 서비스(`greenlink-command`, `greenlink-stream`)를 재시작합니다. 서비스 파일은 `greenlink_pi/systemd/`에 있습니다. cron은 `greenlink_pi/crontab.example`대로 등록합니다(센서 10분마다, **썸네일 캡처 매일 09:00**). 배선과 Pi 초기 설정(부팅 시 릴레이 OFF 고정 포함)은 [HARDWARE_WIRING.md](./HARDWARE_WIRING.md)를 따릅니다.
 4. **ESP32**: `greenlink_esp/secrets.ini`에 Wi-Fi와 실측 보정값(DRY/WET_RAW)을 채운 뒤 `pio run -t upload`.
 5. **카메라 스트림**: 예전 `camera.likepigs.shop` 터널은 없습니다. 앱 기본값은 `https://greenlink-camera.likepigs.shop`이므로, Pi에 cloudflared 터널을 만들고 이 주소를 `http://localhost:8000`으로 연결합니다(다른 주소를 쓰면 앱 빌드 시 `--dart-define=GREENLINK_STREAM_BASE_URL=...`). 인증 없는 영상이라 공개 범위는 Cloudflare Access 등으로 제한하는 것을 권장합니다.
+
+## DB 백업
+
+```bash
+./scripts/backup_db.sh        # backups/greenlink-날짜.sql.gz, 14일 지난 백업 자동 삭제
+```
+
+매일 새벽 자동 백업은 WSL에서 `crontab -e`로 `30 3 * * * cd /home/geung/projects/greenlink && ./scripts/backup_db.sh >> backups/backup.log 2>&1`을 등록합니다. 복원 방법은 스크립트 상단 주석에 있습니다. 백업 파일은 서버 밖(개인 PC 등)에도 주기적으로 복사해 두는 것을 권장합니다.
+
+## 수확 후 다시 심을 때
+
+앱에서 식물을 수확한 뒤 같은 계정으로 새 씨앗을 심으면, Backend가 그 재배기(ESP 토양 센서·펌프 채널·사진 대상·자동화 설정)를 새 식물로 자동으로 옮깁니다. 장치 키나 Pi·ESP 설정 파일은 다시 만들지 않아도 됩니다. 다른 식물로 수동으로 옮기려면 `python3 scripts/setup_iot.py --user-plant-id <새 userPlantId>`를 실행합니다(내부적으로 `POST /api/iot/grow-spaces/{id}/replant` 호출).
 
 ## 구성요소별 서버 주소
 

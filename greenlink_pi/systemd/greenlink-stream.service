@@ -1,0 +1,19 @@
+# GreenLink 카메라 스트림 — http://<pi>:8000/stream.mjpg (앱 실시간 영상, 09:00 썸네일 캡처 원본)
+# 설치: sudo cp systemd/greenlink-stream.service /etc/systemd/system/
+#       sudo systemctl daemon-reload && sudo systemctl enable --now greenlink-stream
+[Unit]
+Description=GreenLink camera MJPEG stream
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=greenlink
+WorkingDirectory=/home/greenlink/greenlink
+ExecStart=/home/greenlink/greenlink/.venv/bin/python3 -u /home/greenlink/greenlink/stream_server.py
+Restart=always
+RestartSec=5
+SupplementaryGroups=video
+
+[Install]
+WantedBy=multi-user.target

@@ -15,6 +15,7 @@ import com.greenlink.greenlink.repository.UserItemRepository;
 import com.greenlink.greenlink.repository.UserQuestRepository;
 import com.greenlink.greenlink.repository.UserRepository;
 import com.greenlink.greenlink.security.JwtTokenProvider;
+import com.greenlink.greenlink.security.LoginAttemptLimiter;
 import com.greenlink.greenlink.service.oauth.OAuthUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +43,7 @@ public class AuthService {
     private final UserQuestRepository userQuestRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final LoginAttemptLimiter loginAttemptLimiter;
 
     // 회원가입 처리 — 사용자 생성 및 기본 데이터 지급
     @Transactional
@@ -67,13 +69,19 @@ public class AuthService {
 
     // 로그인 처리 — 비밀번호 검증 후 JWT 발급
     public AuthDto.LoginResDto login(AuthDto.LoginReqDto request) {
-        User user = userRepository.findByEmailAndDeletedFalse(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
+        // 같은 이메일로 연속 실패하면 잠시 막는다. — 앱 로그인과 관리자 웹 로그인 모두 이 경로를 쓴다.
+        loginAttemptLimiter.checkAllowed(request.getEmail());
 
-        if (user.getProvider() != LoginProvider.LOCAL
+        User user = userRepository.findByEmailAndDeletedFalse(request.getEmail()).orElse(null);
+
+        if (user == null
+                || user.getProvider() != LoginProvider.LOCAL
                 || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            loginAttemptLimiter.recordFailure(request.getEmail());
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+
+        loginAttemptLimiter.recordSuccess(request.getEmail());
 
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),

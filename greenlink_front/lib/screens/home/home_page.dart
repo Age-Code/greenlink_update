@@ -60,28 +60,61 @@ class HomePageState extends State<HomePage> {
     _loadData();
   }
 
+  bool _isLoadInFlight = false;
+  bool _reloadRequested = false;
+
   // 데이터 로드 — API 호출 후 상태 반영
+  // 탭 전환 refresh와 화면 복귀 refresh가 겹쳐도 요청이 섞이지 않도록 한 번에 하나만 실행하고,
+  // 실행 중에 들어온 요청은 끝난 뒤 한 번 더 불러온다.
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    if (_isLoadInFlight) {
+      _reloadRequested = true;
+      return;
+    }
+
+    _isLoadInFlight = true;
+    try {
+      do {
+        _reloadRequested = false;
+        await _loadDataOnce();
+      } while (_reloadRequested && mounted);
+    } finally {
+      _isLoadInFlight = false;
+    }
+  }
+
+  Future<void> _loadDataOnce() async {
+    // 처음 불러올 때만 전체 로딩 화면을 보여준다. 이후 새로고침은 기존 화면을 유지한다.
+    if (_homeData == null) {
+      setState(() => _isLoading = true);
+    }
 
     final homeRes = await _homeService.getHomeData();
     if (!mounted) return;
 
+    HomeResponse? homeData = _homeData;
+    List<UserPlantSummary> userPlants = _userPlants;
+    final latestImages = Map<int, PlantImageData?>.from(_latestImageData);
+
     if (homeRes.success && homeRes.data != null) {
-      _homeData = homeRes.data;
+      final fetched = homeRes.data!;
+      homeData = fetched;
 
       final plantsRes = await _plantService.getUserPlants();
       if (!mounted) return;
+
       if (plantsRes.success && plantsRes.data != null) {
-        _userPlants = plantsRes.data!
+        userPlants = plantsRes.data!
             .where((p) => p.status == 'GROWING' || p.status == 'HARVESTABLE')
             .toList();
+      } else {
+        userPlants = [];
       }
 
-      if (_userPlants.isEmpty && _homeData!.mainUserPlant != null) {
-        final plant = _homeData!.mainUserPlant!;
+      if (userPlants.isEmpty && fetched.mainUserPlant != null) {
+        final plant = fetched.mainUserPlant!;
         if (plant.status == 'GROWING' || plant.status == 'HARVESTABLE') {
-          _userPlants.add(
+          userPlants = [
             UserPlantSummary(
               userPlantId: plant.userPlantId,
               plantId: plant.plantId,
@@ -92,12 +125,12 @@ class HomePageState extends State<HomePage> {
               daysAfterPlanting: plant.daysAfterPlanting,
               remainingDays: plant.remainingDays,
             ),
-          );
+          ];
         }
       }
 
-      if (_userPlants.isNotEmpty) {
-        final futures = _userPlants.map(
+      if (userPlants.isNotEmpty) {
+        final futures = userPlants.map(
           (p) => _iotService
               .getLatestImageData(p.userPlantId)
               .then((data) => MapEntry(p.userPlantId, data)),
@@ -105,12 +138,23 @@ class HomePageState extends State<HomePage> {
         final results = await Future.wait(futures);
         if (!mounted) return;
         for (final entry in results) {
-          _latestImageData[entry.key] = entry.value;
+          latestImages[entry.key] = entry.value;
         }
       }
+    } else if (_homeData != null) {
+      // 이미 보여주던 화면이 있으면 그대로 두고 알려만 준다.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(homeRes.message.isNotEmpty ? homeRes.message : '홈 정보를 새로고침하지 못했어요.')),
+      );
     }
+
     if (!mounted) return;
     setState(() {
+      _homeData = homeData;
+      _userPlants = userPlants;
+      _latestImageData
+        ..clear()
+        ..addAll(latestImages);
       // 수확 등으로 목록이 줄어든 경우 현재 페이지 인덱스 보정
       if (_currentPage >= _userPlants.length) {
         _currentPage = _userPlants.isEmpty ? 0 : _userPlants.length - 1;
@@ -256,12 +300,13 @@ class HomePageState extends State<HomePage> {
           _IconBtn(
             icon: Icons.format_list_bulleted_rounded,
             onTap: () async {
-              final result = await Navigator.push(
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => UserPlantListPage()),
               );
               if (!mounted) return;
-              if (result == true) _loadData();
+              // 목록 화면에서 심기·수확·이름 변경을 했을 수 있으므로 돌아오면 항상 다시 불러온다.
+              _loadData();
             },
           ),
           const SizedBox(width: 8),
@@ -447,7 +492,7 @@ class HomePageState extends State<HomePage> {
       child: GreenlinkCard(
         borderRadius: 24,
         onTap: () async {
-          final result = await Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) =>
@@ -455,7 +500,8 @@ class HomePageState extends State<HomePage> {
             ),
           );
           if (!mounted) return;
-          if (result == true) _loadData();
+          // 상세 화면에서 이름 변경·수확·물주기를 했을 수 있으므로 항상 다시 불러온다.
+          _loadData();
         },
         padding: EdgeInsets.zero,
         color: AppColors.surfaceCard,
@@ -630,7 +676,7 @@ class HomePageState extends State<HomePage> {
                       text: '식물 상세 보기',
                       type: ButtonType.secondary,
                       onPressed: () async {
-                        final result = await Navigator.push(
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => UserPlantDetailPage(
@@ -639,7 +685,8 @@ class HomePageState extends State<HomePage> {
                           ),
                         );
                         if (!mounted) return;
-                        if (result == true) _loadData();
+                        // 상세 화면에서 이름 변경·수확·물주기를 했을 수 있으므로 항상 다시 불러온다.
+                        _loadData();
                       },
                     ),
                   ],

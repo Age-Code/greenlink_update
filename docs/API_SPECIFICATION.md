@@ -206,6 +206,7 @@ JWT는 `tokenVersion` claim을 포함합니다. `JwtAuthenticationFilter`는 토
 | GET | `/api/iot/grow-spaces` | JWT | 재배 공간 목록 | 없음 | `GrowSpaceResDto[]` |
 | POST | `/api/iot/grow-spaces/{growSpaceId}/plants` | JWT | 내 식물 공간 연결 | `ConnectPlantReqDto` | `GrowSpacePlantResDto` |
 | GET | `/api/iot/grow-spaces/{growSpaceId}/plants` | JWT | 공간 내 식물 목록 | 없음 | `GrowSpacePlantResDto[]` |
+| POST | `/api/iot/grow-spaces/{growSpaceId}/replant` | JWT(ADMIN) | 재배기 담당 식물 교체 — 기존 연결 해제, ESP32·펌프 채널을 새 식물로 이동, 자동화 설정 승계 | `ConnectPlantReqDto` | `GrowSpacePlantResDto` |
 | POST | `/api/iot/devices` | JWT | 장치 등록 | `DeviceCreateReqDto` | `DeviceResDto` |
 | GET | `/api/iot/devices` | JWT | 전체 장치 목록 | 없음 | `DeviceResDto[]` |
 | POST | `/api/iot/pump-channels` | JWT | 펌프 채널 등록 | `PumpChannelCreateReqDto` | `PumpChannelResDto` |

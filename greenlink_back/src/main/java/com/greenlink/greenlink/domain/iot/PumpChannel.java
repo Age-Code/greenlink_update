@@ -115,6 +115,15 @@ public class PumpChannel {
         this.relayChannel = relayChannel;
     }
 
+    // 급수 대상 식물 교체 — 재배기에 새 식물을 심었을 때 같은 펌프를 새 식물에 연결한다.
+    public void reassignUserPlant(UserPlant userPlant) {
+        if (userPlant == null) {
+            throw new IllegalArgumentException("펌프 채널은 대상 식물이 필요합니다.");
+        }
+
+        this.userPlant = userPlant;
+    }
+
     // 비활성화 처리
     public void deactivate() {
         this.active = false;

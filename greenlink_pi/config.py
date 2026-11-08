@@ -26,12 +26,13 @@ SERVER_PENDING_COMMAND_URL = f"{BASE_URL}/api/iot/commands/pending"
 
 
 
-# 식물 ID 설정
-# Backend DB의 userPlantId와 반드시 일치해야 한다.
-# 값이 틀리면 다른 식물에 사진이 업로드되므로 소스에 고정하지 않고 환경변수로 주입한다.
-
+# 식물 ID 설정 (선택)
 # 재배기 한 대에 식물 한 개를 기준으로 운영한다.
-USER_PLANT_ID = int(_require_env("GREENLINK_USER_PLANT_ID"))
+# 비워 두면 Backend가 이 Pi의 재배 공간에 연결된 식물에 사진을 붙인다.
+# 앱에서 수확 후 새 씨앗을 심으면 Backend가 재배기를 새 식물로 옮기므로, 비워 두는 것을 권장한다.
+# 값을 넣으면 그 식물을 우선 사용하고, 더 이상 연결돼 있지 않으면 Backend가 현재 식물로 대신한다.
+_user_plant_id_raw = os.environ.get("GREENLINK_USER_PLANT_ID", "").strip()
+USER_PLANT_ID = int(_user_plant_id_raw) if _user_plant_id_raw else None
 
 
 # 파일/이미지 저장 설정

@@ -3,6 +3,7 @@ package com.greenlink.greenlink.repository;
 import com.greenlink.greenlink.domain.iot.GrowSpace;
 import com.greenlink.greenlink.domain.iot.GrowSpacePlant;
 import com.greenlink.greenlink.domain.plant.UserPlant;
+import com.greenlink.greenlink.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,6 +11,9 @@ import java.util.Optional;
 
 // GrowSpacePlantRepository — JPA 데이터 접근
 public interface GrowSpacePlantRepository extends JpaRepository<GrowSpacePlant, Long> {
+
+    // 사용자의 식물이 연결된 재배 공간 목록 — 새로 심은 식물로 재배기를 넘길 때 사용
+    List<GrowSpacePlant> findAllByUserPlant_UserAndActiveTrueAndDeletedFalse(User user);
 
     // find All By Grow Space And Deleted False 조회 — JPA query method
     List<GrowSpacePlant> findAllByGrowSpaceAndDeletedFalse(GrowSpace growSpace);

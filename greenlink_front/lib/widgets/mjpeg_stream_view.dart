@@ -104,10 +104,19 @@ class _MjpegStreamViewState extends State<MjpegStreamView> {
     }
   }
 
+  // 한 프레임(1640x1232 JPEG ≈ 수백 KB)보다 넉넉히 큰 상한
+  static const int _maxBufferBytes = 4 * 1024 * 1024;
+
   // 스트림 chunk 처리 — 버퍼에 추가 후 프레임 추출
   void _onData(List<int> chunk) {
     _buffer.addAll(chunk);
     _extractFrames();
+
+    // 프레임 끝(EOI)이 계속 오지 않는 깨진 스트림이면 버퍼가 끝없이 커지므로 비운다.
+    if (_buffer.length > _maxBufferBytes) {
+      debugPrint('[MjpegStreamView] ⚠️ 버퍼 상한 초과 — 버퍼 초기화');
+      _buffer.clear();
+    }
   }
 
   // 스트림 오류 처리 — 에러 상태 표시
@@ -128,6 +137,7 @@ class _MjpegStreamViewState extends State<MjpegStreamView> {
 
   // JPEG 프레임 추출 — SOI/EOI 구간을 찾아 이미지 갱신
   void _extractFrames() {
+    Uint8List? latestFrame;
     while (_buffer.length >= 2) {
       // SOI 마커(FF D8) 탐색
       final start = _findSequence(_buffer, _soiByte0, _soiByte1, 0);
@@ -151,10 +161,13 @@ class _MjpegStreamViewState extends State<MjpegStreamView> {
       final frame = Uint8List.fromList(_buffer.sublist(0, frameEnd));
       _buffer.removeRange(0, frameEnd);
 
-      // 렌더링
-      if (mounted) {
-        setState(() => _frameBytes = frame);
-      }
+      latestFrame = frame;
+    }
+
+    // chunk 하나에 프레임이 여러 장 들어와도 마지막 프레임만 한 번 그린다.
+    if (latestFrame != null && mounted) {
+      final frameToShow = latestFrame;
+      setState(() => _frameBytes = frameToShow);
     }
   }
 

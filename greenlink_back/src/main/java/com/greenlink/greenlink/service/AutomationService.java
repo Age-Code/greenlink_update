@@ -7,6 +7,7 @@ import com.greenlink.greenlink.domain.automation.AutomationModelStatus;
 import com.greenlink.greenlink.domain.automation.AutomationSetting;
 import com.greenlink.greenlink.domain.automation.AutomationType;
 import com.greenlink.greenlink.domain.automation.TriggerSensorType;
+import com.greenlink.greenlink.domain.iot.CommandStatus;
 import com.greenlink.greenlink.domain.iot.CommandType;
 import com.greenlink.greenlink.domain.iot.DeviceCommand;
 import com.greenlink.greenlink.domain.iot.DeviceType;
@@ -17,6 +18,7 @@ import com.greenlink.greenlink.domain.iot.IotDevice;
 import com.greenlink.greenlink.domain.iot.PumpChannel;
 import com.greenlink.greenlink.domain.iot.RaspberrySensorData;
 import com.greenlink.greenlink.domain.plant.UserPlant;
+import com.greenlink.greenlink.domain.plant.UserPlantStatus;
 import com.greenlink.greenlink.domain.user.User;
 import com.greenlink.greenlink.dto.AutomationDto;
 import com.greenlink.greenlink.repository.AutomationLogRepository;
@@ -144,6 +146,12 @@ public class AutomationService {
 
         if (user == null) {
             log.debug("[AUTO_WATER] SKIP — user=null (userPlantId={})", userPlant.getId());
+            return;
+        }
+
+        // 수확이 끝난 식물은 앱에서 키우는 대상이 아니므로 자동 급수하지 않는다.
+        if (userPlant.getStatus() == UserPlantStatus.HARVESTED) {
+            log.debug("[AUTO_WATER] SKIP — 수확 완료 식물 (userPlantId={})", userPlant.getId());
             return;
         }
 
@@ -378,6 +386,16 @@ public class AutomationService {
             return;
         }
 
+        // 현재 LED 상태 — 마지막으로 성공한 조명 명령 기준. 기록이 없으면 null(모름)
+        Boolean lightOn = deviceCommandRepository
+                .findTopByGrowSpaceAndCommandTypeInAndCommandStatusAndDeletedFalseOrderByCompletedAtDesc(
+                        growSpace,
+                        List.of(CommandType.LIGHT_ON, CommandType.LIGHT_OFF),
+                        CommandStatus.SUCCESS
+                )
+                .map(command -> command.getCommandType() == CommandType.LIGHT_ON)
+                .orElse(null);
+
         for (GrowSpacePlant growSpacePlant : growSpacePlants) {
             UserPlant userPlant = growSpacePlant.getUserPlant();
 
@@ -390,7 +408,8 @@ public class AutomationService {
                     userPlant,
                     growSpace,
                     raspberryDevice,
-                    light
+                    light,
+                    lightOn
             );
 
             // LED는 공간당 1개이므로 이번 주기의 조명은 먼저 판단된 식물 설정으로 결정한다.
@@ -407,7 +426,8 @@ public class AutomationService {
             UserPlant userPlant,
             GrowSpace growSpace,
             IotDevice raspberryDevice,
-            Double light
+            Double light,
+            Boolean lightOn
     ) {
         AutomationSetting setting =
                 getOrCreateDefaultSetting(userPlant.getUser(), userPlant);
@@ -444,6 +464,19 @@ public class AutomationService {
                 now, setting.getLightStartTime(), setting.getLightEndTime(), userPlant.getId());
 
         if (!inLightTime) {
+            // 이미 꺼져 있으면 밤새 10분마다 OFF 명령을 반복해 만들지 않는다.
+            if (Boolean.FALSE.equals(lightOn)) {
+                saveSkipLog(
+                        userPlant,
+                        AutomationType.SKIP_LIGHT,
+                        TriggerSensorType.TIME,
+                        light,
+                        lightOffThreshold,
+                        "자동 조명 작동 시간이 아니며 LED가 이미 꺼져 있습니다."
+                );
+                return false;
+            }
+
             log.debug("[AUTO_LIGHT] 시간대 외 — LIGHT_OFF 판단 진행 (userPlantId={})", userPlant.getId());
             return createLightCommandIfPossible(
                     userPlant,
@@ -457,6 +490,20 @@ public class AutomationService {
                     setting.getLightCooldownMinutes(),
                     "자동 조명 작동 시간이 아니므로 LED OFF 명령을 생성했습니다."
             );
+        }
+
+        // LED가 켜져 있는 동안 측정한 조도에는 LED 빛이 섞여 자연광 판단에 쓸 수 없다.
+        // 켜진 뒤 조도로 다시 끄면 켜짐/꺼짐이 쿨다운마다 반복되므로, 작동 시간대 끝까지 유지한다.
+        if (Boolean.TRUE.equals(lightOn)) {
+            saveSkipLog(
+                    userPlant,
+                    AutomationType.SKIP_LIGHT,
+                    TriggerSensorType.LIGHT,
+                    light,
+                    lightOffThreshold,
+                    "LED가 켜져 있어 작동 시간대가 끝날 때까지 유지합니다."
+            );
+            return false;
         }
 
         if (light <= lightOnThreshold) {
@@ -479,7 +526,8 @@ public class AutomationService {
             );
         }
 
-        if (light >= lightOffThreshold) {
+        // 여기까지 왔다면 LED는 꺼져 있거나 상태를 모른다. 이미 꺼져 있으면 OFF를 다시 보내지 않는다.
+        if (light >= lightOffThreshold && lightOn == null) {
             log.debug("[AUTO_LIGHT] LIGHT_OFF 조건 충족 (userPlantId={})", userPlant.getId());
             return createLightCommandIfPossible(
                     userPlant,

@@ -75,7 +75,11 @@ class AutomationStatusCard extends StatelessWidget {
                   ),
                 ),
                 DropdownButton<String>(
-                  value: setting.decisionMode,
+                  // 목록에 없는 값이 오면 DropdownButton이 assert로 멈추므로 HYBRID로 표시한다.
+                  value: const ['RULE_BASED', 'HYBRID', 'LEARNING_BASED']
+                          .contains(setting.decisionMode)
+                      ? setting.decisionMode
+                      : 'HYBRID',
                   underline: const SizedBox(),
                   style: const TextStyle(
                     fontSize: 13,
@@ -219,6 +223,8 @@ class _AutomationThresholdCardState extends State<AutomationThresholdCard> {
       minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0,
     );
     final picked = await showTimePicker(context: ctx, initialTime: init);
+    // 시간 선택기가 떠 있는 동안 상위 화면이 다시 그려져 이 카드가 사라졌을 수 있다.
+    if (!mounted) return;
     if (picked != null) {
       final formatted =
           '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';

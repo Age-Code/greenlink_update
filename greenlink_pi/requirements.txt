@@ -1,0 +1,10 @@
+# GreenLink Raspberry Pi 파이썬 패키지
+# picamera2·smbus·gpiozero·lgpio는 apt로 설치하고, venv를 --system-site-packages로 만들어 함께 쓴다.
+#   sudo apt install -y python3-picamera2 python3-smbus python3-gpiozero python3-lgpio i2c-tools
+#   python3 -m venv --system-site-packages .venv
+#   .venv/bin/pip install -r requirements.txt
+requests>=2.31
+flask>=3.0
+pillow>=10.0
+adafruit-blinka>=8.0
+adafruit-circuitpython-dht>=4.0

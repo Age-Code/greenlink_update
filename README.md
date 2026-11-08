@@ -188,6 +188,8 @@ greenlink/
 - `PI.md` — Raspberry Pi
 - `DEPLOYMENT.md` — 학교 서버(winserver WSL Docker + Cloudflare 터널) 백엔드 배포 절차
 - `INFRASTRUCTURE_SETUP_GUIDE.md` — (참고용, AWS 기준 구 가이드) 서버·DB·DNS·TLS·OAuth·IoT 구축 절차
+- `HARDWARE_WIRING.md` — 실제 하드웨어 배선(핀 번호)과 단계별 연결·점검 절차
+- `PROJECT_REVIEW.md` — 15가지 관점 점검 결과와 남은 권장 사항
 - `API_SPECIFICATION.md` — REST API 명세
 - `FUNCTIONAL_SPECIFICATION.md` — 기능 명세
 
@@ -264,7 +266,9 @@ python3 stream_server.py
 python3 command_worker.py
 ```
 
-**필요 설정**: 서버 endpoint, 장치 키, 식물 ID(`GREENLINK_USER_PLANT_ID`), 펌프 GPIO(`GREENLINK_PUMP_GPIO`, 기본 22). 재배기 1대에 식물 1개를 기준으로 하며 카메라는 전체 화면을 사용합니다. (`greenlink.env.example` 참고)
+**필요 설정**: 서버 endpoint, 장치 키, 펌프 GPIO(`GREENLINK_PUMP_GPIO`, 기본 22). 재배기 1대에 식물 1개를 기준으로 하며 카메라는 전체 화면을 사용합니다. 식물 ID(`GREENLINK_USER_PLANT_ID`)는 선택이며, 비워 두면 Backend가 재배기에 연결된 현재 식물에 사진을 붙입니다. 상시 실행 서비스는 `greenlink_pi/systemd/`, 주기 작업은 `crontab.example`을 사용합니다. (`greenlink.env.example` 참고)
+
+**배선**: 센서·릴레이·펌프·LED를 몇 번 핀에 꽂는지는 [하드웨어 연결 가이드](./docs/HARDWARE_WIRING.md)를 따릅니다.
 
 ---
 
@@ -321,6 +325,7 @@ python3 command_worker.py
 - 🔌 [ESP32 펌웨어](./docs/ESP.md)
 - 🍓 [Raspberry Pi](./docs/PI.md)
 - 🚀 [배포 가이드](./docs/DEPLOYMENT.md)
+- 🔧 [하드웨어 연결 가이드](./docs/HARDWARE_WIRING.md)
 - 🏗️ [신규 인프라 구축·운영 가이드](./docs/INFRASTRUCTURE_SETUP_GUIDE.md)
 - 🔗 [API 명세](./docs/API_SPECIFICATION.md)
 - 📋 [기능 명세](./docs/FUNCTIONAL_SPECIFICATION.md)

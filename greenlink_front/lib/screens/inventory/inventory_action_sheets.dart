@@ -28,6 +28,7 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
 
   List<UserPlantSummary>? _plants;
   bool _isLoading = true;
+  String? _loadError;
   int? _selectedPlantId;
   bool _isEquipping = false;
 
@@ -42,7 +43,12 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
   void _loadPlants() async {
     final res = await _plantService.getUserPlants();
     if (!mounted) return;
-    setState(() { _plants = res.data ?? []; _isLoading = false; });
+    setState(() {
+      _plants = res.data ?? [];
+      // 네트워크 오류를 "식물이 없어요"로 보여주지 않도록 실패 사유를 따로 둔다.
+      _loadError = res.success ? null : (res.message.isNotEmpty ? res.message : '식물 목록을 불러오지 못했어요.');
+      _isLoading = false;
+    });
   }
 
   // 화분 장착 처리
@@ -53,9 +59,11 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
     if (!mounted) return;
     setState(() => _isEquipping = false);
     if (res.success) {
+      // 시트를 닫으면 이 context는 곧 사라지므로 messenger를 먼저 잡아둔다.
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.pop(context);
       widget.onSuccess();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
+      messenger.showSnackBar(SnackBar(content: Text(res.message)));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res.message)));
     }
@@ -100,6 +108,13 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
             Expanded(
               child: _isLoading
                   ? const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primaryStrong)))
+                  : _loadError != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(_loadError!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: AppColors.bodyMuted)),
+                          ),
+                        )
                   : (_plants == null || _plants!.isEmpty)
                       ? _buildEmptyState()
                       : ListView.builder(
@@ -151,9 +166,14 @@ class _PotEquipBottomSheetState extends State<PotEquipBottomSheet> {
             GreenlinkButton(
               text: '씨앗 심기',
               width: 160,
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => SeedPlantingPage()));
+              onPressed: () async {
+                // 시트를 닫은 뒤에도 쓸 수 있도록 상위 Navigator를 먼저 잡아둔다.
+                final navigator = Navigator.of(context);
+                final onSuccess = widget.onSuccess;
+                navigator.pop();
+                final planted = await navigator.push(MaterialPageRoute(builder: (_) => SeedPlantingPage()));
+                // 씨앗을 심었으면 인벤토리 수량을 다시 불러온다.
+                if (planted == true) onSuccess();
               },
             ),
           ],
@@ -182,6 +202,7 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
 
   List<UserPlantSummary>? _plants;
   bool _isLoading = true;
+  String? _loadError;
   int? _selectedPlantId;
   bool _isUsing = false;
 
@@ -196,7 +217,12 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
   void _loadPlants() async {
     final res = await _plantService.getUserPlants();
     if (!mounted) return;
-    setState(() { _plants = res.data ?? []; _isLoading = false; });
+    setState(() {
+      _plants = res.data ?? [];
+      // 네트워크 오류를 "식물이 없어요"로 보여주지 않도록 실패 사유를 따로 둔다.
+      _loadError = res.success ? null : (res.message.isNotEmpty ? res.message : '식물 목록을 불러오지 못했어요.');
+      _isLoading = false;
+    });
   }
 
   // 영양제 결과 문구 — 서버가 돌려준 남은 성장일 기준
@@ -263,6 +289,13 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
             Expanded(
               child: _isLoading
                   ? const Center(child: SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.primaryStrong)))
+                  : _loadError != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(_loadError!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: AppColors.bodyMuted)),
+                          ),
+                        )
                   : (_plants == null || _plants!.isEmpty)
                       ? _buildEmptyState()
                       : ListView.builder(
@@ -314,9 +347,14 @@ class _NutrientUseBottomSheetState extends State<NutrientUseBottomSheet> {
             GreenlinkButton(
               text: '씨앗 심기',
               width: 160,
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => SeedPlantingPage()));
+              onPressed: () async {
+                // 시트를 닫은 뒤에도 쓸 수 있도록 상위 Navigator를 먼저 잡아둔다.
+                final navigator = Navigator.of(context);
+                final onSuccess = widget.onSuccess;
+                navigator.pop();
+                final planted = await navigator.push(MaterialPageRoute(builder: (_) => SeedPlantingPage()));
+                // 씨앗을 심었으면 인벤토리 수량을 다시 불러온다.
+                if (planted == true) onSuccess();
               },
             ),
           ],

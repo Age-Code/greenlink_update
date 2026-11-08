@@ -46,6 +46,16 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(e.getMessage()));
     }
 
+    // 너무 잦은 요청 처리 — 로그인 무차별 대입 차단 등
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiResponse<Void>> handleTooManyRequestsException(
+            TooManyRequestsException e
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.fail(e.getMessage()));
+    }
+
     // 현재 상태상 수행할 수 없는 요청 처리
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(

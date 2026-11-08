@@ -19,7 +19,7 @@ class AuthService {
     String email,
     String password,
   ) async {
-    debugPrint('[AuthService] 🔐 로그인 시도 — email: $email');
+    debugPrint('[AuthService] 🔐 로그인 시도');
     try {
       final response = await _client.post(
         ApiPaths.login,
@@ -30,7 +30,6 @@ class AuthService {
         final loginData = LoginResponse.fromJson(response['data']);
         await _tokenStorage.saveAccessToken(loginData.accessToken);
         debugPrint('[AuthService] ✅ 로그인 성공 — token 저장 완료');
-        debugPrint('[AuthService]   nickname: ${loginData.user.nickname}');
         return ApiResponse<LoginResponse>(
           success: true,
           message: response['message'] ?? '로그인 성공',
@@ -58,7 +57,7 @@ class AuthService {
     String password,
     String nickname,
   ) async {
-    debugPrint('[AuthService] 📝 회원가입 시도 — email: $email, nickname: $nickname');
+    debugPrint('[AuthService] 📝 회원가입 시도');
     try {
       final response = await _client.post(
         ApiPaths.signup,

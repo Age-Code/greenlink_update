@@ -128,6 +128,19 @@ public class IotDevice {
         }
     }
 
+    // ESP32 담당 식물 교체 — 재배기에 새 식물을 심었을 때 같은 센서를 새 식물에 연결한다.
+    public void reassignUserPlant(UserPlant userPlant) {
+        if (!isEsp32()) {
+            throw new IllegalStateException("ESP32 기기만 담당 식물을 바꿀 수 있습니다.");
+        }
+
+        if (userPlant == null) {
+            throw new IllegalArgumentException("ESP32는 특정 식물에 연결되어야 합니다.");
+        }
+
+        this.userPlant = userPlant;
+    }
+
     // update Last Connected At 수정
     public void updateLastConnectedAt() {
         this.lastConnectedAt = LocalDateTime.now();
