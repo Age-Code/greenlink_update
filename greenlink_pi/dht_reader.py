@@ -22,7 +22,8 @@ def find_iio_dht(devices_dir: Path = IIO_DEVICES_DIR) -> Path | None:
         except OSError:
             continue
 
-        if name in DHT_DRIVER_NAMES:
+        # 커널 버전에 따라 "dht11" 또는 "dht11@4"(GPIO 번호 포함)로 나온다.
+        if name.split("@", 1)[0] in DHT_DRIVER_NAMES:
             return device
 
     return None

@@ -29,6 +29,12 @@ class DhtReaderTest(unittest.TestCase):
 
         self.assertEqual(find_iio_dht(self.devices), dht)
 
+    def test_finds_device_name_with_gpio_suffix(self):
+        # Raspberry Pi OS(trixie) 커널은 "dht11@4"처럼 GPIO 번호를 붙인다.
+        dht = self._device(0, "dht11@4")
+
+        self.assertEqual(find_iio_dht(self.devices), dht)
+
     def test_returns_none_without_overlay(self):
         self._device(0, "bh1750")
 
