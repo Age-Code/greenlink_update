@@ -563,9 +563,12 @@ class HomePageState extends State<HomePage> {
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: AppColors.hairline),
                         ),
-                        child: const Text(
-                          'AI Growth Image',
-                          style: TextStyle(
+                        // 재배기 카메라 사진이면 촬영 날짜, 없으면 기본 이미지
+                        child: Text(
+                          plantPhotoLabel(
+                            _latestImageData[plant.userPlantId]?.capturedAt,
+                          ),
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: AppColors.bodyMuted,
@@ -724,4 +727,11 @@ class _IconBtn extends StatelessWidget {
       ),
     );
   }
+}
+
+// 홈 카드 사진 라벨 — 재배기 카메라로 찍은 사진이면 "M월 D일 촬영", 없으면 "기본 이미지"
+String plantPhotoLabel(String? capturedAt) {
+  final captured = capturedAt == null ? null : DateTime.tryParse(capturedAt);
+  if (captured == null) return '기본 이미지';
+  return '${captured.month}월 ${captured.day}일 촬영';
 }
