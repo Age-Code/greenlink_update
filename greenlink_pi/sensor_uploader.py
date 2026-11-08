@@ -3,7 +3,7 @@
 from datetime import datetime
 import requests
 
-from config import SERVER_ENVIRONMENT_URL, DEVICE_KEY
+from config import SERVER_ENVIRONMENT_URL, DEVICE_KEY, HTTP_USER_AGENT
 
 
 # 센서 데이터 업로드 — Backend 환경 센서 API POST
@@ -17,6 +17,7 @@ def upload_sensor_data(sensor_data: dict):
 
     headers = {
         "X-DEVICE-KEY": DEVICE_KEY,
+        "User-Agent": HTTP_USER_AGENT,
         "Content-Type": "application/json",
     }
 

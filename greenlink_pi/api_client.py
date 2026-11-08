@@ -6,13 +6,15 @@ from config import (
     SERVER_PENDING_COMMAND_URL,
     DEVICE_KEY,
     BASE_URL,
+    HTTP_USER_AGENT,
 )
 
 
 # 장치 인증 헤더 생성 — X-DEVICE-KEY 포함
 def get_device_headers():
     return {
-        "X-DEVICE-KEY": DEVICE_KEY
+        "X-DEVICE-KEY": DEVICE_KEY,
+        "User-Agent": HTTP_USER_AGENT,
     }
 
 
