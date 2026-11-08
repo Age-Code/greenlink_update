@@ -3,6 +3,8 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <math.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 // =====================================================
 // 1. Wi-Fi 및 서버 설정
@@ -104,11 +106,20 @@ const int ADC_MAX_VALID_RAW = 4045;
 
 const int SAMPLE_COUNT = 10;
 
-// 테스트용: 10초마다 전송
-//const unsigned long SEND_INTERVAL_MS = 10UL * 1000UL;
+// 측정·전송 주기(초) — 기본 600초(10분).
+// 보정할 때만 secrets.ini에 -D GREENLINK_SEND_INTERVAL_SEC=30 을 넣어 짧게 하고, 끝나면 지운다.
+#ifndef GREENLINK_SEND_INTERVAL_SEC
+#define GREENLINK_SEND_INTERVAL_SEC 600
+#endif
 
-// 실제 운영용: 10분마다 전송
-const unsigned long SEND_INTERVAL_MS = 10UL * 60UL * 1000UL;
+const unsigned long SEND_INTERVAL_MS = (unsigned long)GREENLINK_SEND_INTERVAL_SEC * 1000UL;
+
+// Wi-Fi 송신 출력 — 기본 최대(19.5dBm)는 켜는 순간 전류가 커서 약한 USB 전원에서
+// "Brownout detector was triggered"로 재부팅을 반복할 수 있다. 공유기 근처에서는 11dBm이면 충분하다.
+// 신호가 약하면 secrets.ini에 -D GREENLINK_WIFI_TX_POWER=WIFI_POWER_15dBm 처럼 올린다.
+#ifndef GREENLINK_WIFI_TX_POWER
+#define GREENLINK_WIFI_TX_POWER WIFI_POWER_11dBm
+#endif
 
 unsigned long lastSendTime = 0;
 
@@ -135,6 +146,12 @@ void measureAndSend();
 // =====================================================
 
 void setup() {
+#ifdef GREENLINK_DISABLE_BROWNOUT
+    // Wi-Fi 무선을 켜는 순간의 짧은 전압 강하로 "Brownout detector was triggered" 리셋이 반복되는 보드용.
+    // 전원이 정말 부족한 상태를 감지하지 못하게 되므로, 좋은 USB 어댑터를 쓰는 것이 먼저다.
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+#endif
+
     Serial.begin(115200);
     delay(1000);
 
@@ -152,6 +169,9 @@ void setup() {
     Serial.print("WET_RAW: ");
     Serial.println(WET_RAW);
 
+    Serial.print("SEND_INTERVAL_SEC: ");
+    Serial.println(GREENLINK_SEND_INTERVAL_SEC);
+
     if (DRY_RAW <= WET_RAW) {
         Serial.println("[ERROR] DRY_RAW는 WET_RAW보다 커야 합니다.");
         Serial.println("[ERROR] 보정값을 다시 확인하세요.");
@@ -160,8 +180,8 @@ void setup() {
     analogReadResolution(12);
     analogSetPinAttenuation(SOIL_SENSOR_PIN, ADC_11db);
 
-    connectWiFi();
-
+    // 측정을 먼저 한다. — Wi-Fi 연결은 전송할 때(sendSoilMoistureData) 한다.
+    // 전원이 약해 Wi-Fi를 켜다 리셋되더라도 시리얼에 [RAW 평균]은 먼저 찍혀 보정에 쓸 수 있다.
     measureAndSend();
 
     lastSendTime = millis();
@@ -373,8 +393,14 @@ void measureAndSend() {
     int raw = readSoilRaw();
 
     if (!isSensorReadingValid(raw)) {
+#ifdef GREENLINK_DIAGNOSTIC_SEND
+        // 진단 모드 — 시리얼을 볼 수 없을 때 raw 값을 서버로 보내 원인을 확인한다.
+        // 범위 밖 값도 보내므로 진단하는 동안 앱의 자동 물 주기는 꺼 둔다.
+        Serial.println("[진단 모드] 범위 밖 값이지만 raw 확인을 위해 전송합니다.");
+#else
         Serial.println("[전송 생략] 센서 이탈 또는 고장으로 판단되어 이번 측정값을 보내지 않습니다.");
         return;
+#endif
     }
 
     double percent = convertRawToPercent(raw);
@@ -416,6 +442,7 @@ void measureAndSend() {
 
 void connectWiFi() {
     WiFi.mode(WIFI_STA);
+    WiFi.setTxPower(GREENLINK_WIFI_TX_POWER);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     Serial.println();
