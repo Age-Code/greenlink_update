@@ -204,7 +204,7 @@ greenlink/
 - Raspberry Pi: 급수 시간 검증·릴레이·명령 워커 unit test 통과 (GPIO 실물 시험은 별도)
 - ESP32: PlatformIO 빌드 성공 (실기기 시험은 별도)
 
-현재 Backend와 Pi는 WATER 명령을 모두 **0초 초과, 10초 이하**로 제한하는 fail-closed 정책을 적용하며, 수동/자동 급수는 모두 10초 동안 펌프를 켭니다. `durationSeconds` key가 아예 없을 때만 Pi가 10초를 사용하며, null·문자열·boolean·비유한 수·0 이하·10초 초과 값은 펌프를 켜기 전에 거부하고 명령을 `FAILED`로 보고합니다. 10초는 실제 재배기 운영에 맞춰 정한 값이므로, 펌프나 화분을 바꾸면 유량과 안전 급수량을 다시 측정해 조정하세요. 자세한 산정 방법은 [Raspberry Pi 문서](./docs/PI.md)를 참고하세요.
+현재 Backend와 Pi는 WATER 명령을 모두 **0초 초과, 30초 이하**로 제한하는 fail-closed 정책을 적용하며, 수동/자동 급수는 모두 30초 동안 펌프를 켭니다. `durationSeconds` key가 아예 없을 때만 Pi가 30초를 사용하며, null·문자열·boolean·비유한 수·0 이하·30초 초과 값은 펌프를 켜기 전에 거부하고 명령을 `FAILED`로 보고합니다. 30초는 실제 재배기 운영에 맞춰 정한 값이므로, 펌프나 화분을 바꾸면 유량과 안전 급수량을 다시 측정해 조정하세요. 자세한 산정 방법은 [Raspberry Pi 문서](./docs/PI.md)를 참고하세요.
 
 ## 🚀 실행 방법
 
@@ -282,7 +282,7 @@ python3 command_worker.py
 | 출석 / 퀘스트 / 도감 | ✅ 구현 완료 | ATTEND·HARVEST 자동 연동 |
 | ESP32 토양수분 측정 | ✅ 구현 완료 | 10분 주기 |
 | Pi 환경 센서 / 카메라 스트림 | ✅ 구현 완료 | DHT22, BH1750, MJPEG |
-| 수동 / 자동 물주기 · 조명 | ⚠️ 부분 구현 | DeviceCommand 기반, Backend/Pi 양쪽 WATER 10초 상한 적용. 물리 유량 보정 필요 |
+| 수동 / 자동 물주기 · 조명 | ⚠️ 부분 구현 | DeviceCommand 기반, Backend/Pi 양쪽 WATER 30초 상한 적용. 물리 유량 보정 필요 |
 | 일일 식물 사진 썸네일 | ✅ 구현 완료 | 매일 09:00 캡처, 서버 디스크 저장, 30일 보관 |
 | Admin Dashboard | ✅ 구현 완료 | 운영 현황 대시보드, HttpOnly cookie 로그인 |
 | 서버 배포 | ✅ 운영 중 | 학교 서버 Docker + Cloudflare Tunnel (`greenlink.likepigs.shop`) |

@@ -12,7 +12,7 @@ class DeviceCommandTest {
 
     @Test
     void waterCommandUsesDurationWithinFailClosedLimit() {
-        assertThat(DeviceCommand.MAX_WATER_DURATION_SECONDS).isEqualTo(10);
+        assertThat(DeviceCommand.MAX_WATER_DURATION_SECONDS).isEqualTo(30);
 
         GrowSpace growSpace = growSpace();
         DeviceCommand command = DeviceCommand.createWaterCommand(
@@ -25,7 +25,7 @@ class DeviceCommandTest {
         assertThat(command.getDurationSeconds())
                 .isPositive()
                 .isLessThanOrEqualTo(DeviceCommand.MAX_WATER_DURATION_SECONDS)
-                .isEqualTo(10);
+                .isEqualTo(30);
     }
 
     @Test

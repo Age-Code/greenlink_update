@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @Table(name = "device_command")
 public class DeviceCommand {
 
-    private static final int DEFAULT_WATER_DURATION_SECONDS = 10;
-    public static final int MAX_WATER_DURATION_SECONDS = 10;
+    private static final int DEFAULT_WATER_DURATION_SECONDS = 30;
+    public static final int MAX_WATER_DURATION_SECONDS = 30;
 
     // 라즈베리파이가 응답하지 않는 명령을 방치 상태로 판정하는 기준 시간
     public static final int STALE_COMMAND_TIMEOUT_MINUTES = 5;
@@ -51,7 +51,7 @@ public class DeviceCommand {
     @Column(nullable = false, length = 30)
     private CommandStatus commandStatus;
 
-    // 실제 라즈베리파이가 펌프를 작동시킬 시간 — 현재 MVP에서는 서버 고정값 10초를 사용한다.
+    // 실제 라즈베리파이가 펌프를 작동시킬 시간 — 현재 MVP에서는 서버 고정값 30초를 사용한다.
     private Integer durationSeconds;
 
     @Column(nullable = false)
@@ -119,7 +119,7 @@ public class DeviceCommand {
         }
     }
 
-    // 급수 명령 생성 — 기본 급수 시간 10초
+    // 급수 명령 생성 — 기본 급수 시간 30초
     public static DeviceCommand createWaterCommand(
             GrowSpace growSpace,
             UserPlant userPlant,

@@ -14,15 +14,15 @@ from water_duration import (
 
 class WaterDurationTest(unittest.TestCase):
 
-    def test_missing_duration_uses_ten_second_default(self):
-        self.assertEqual(DEFAULT_WATER_DURATION_SECONDS, 10.0)
-        self.assertEqual(resolve_water_duration({}), 10.0)
+    def test_missing_duration_uses_thirty_second_default(self):
+        self.assertEqual(DEFAULT_WATER_DURATION_SECONDS, 30.0)
+        self.assertEqual(resolve_water_duration({}), 30.0)
 
     def test_positive_duration_up_to_max_is_allowed(self):
-        self.assertEqual(MAX_WATER_DURATION_SECONDS, 10.0)
+        self.assertEqual(MAX_WATER_DURATION_SECONDS, 30.0)
         self.assertEqual(resolve_water_duration({"durationSeconds": 0.5}), 0.5)
         self.assertEqual(resolve_water_duration({"durationSeconds": 1}), 1.0)
-        self.assertEqual(resolve_water_duration({"durationSeconds": 10}), 10.0)
+        self.assertEqual(resolve_water_duration({"durationSeconds": 30}), 30.0)
 
     def test_invalid_duration_is_rejected(self):
         invalid_values = [
@@ -32,7 +32,7 @@ class WaterDurationTest(unittest.TestCase):
             False,
             0,
             -1,
-            10.0001,
+            30.0001,
             math.inf,
             -math.inf,
             math.nan,
