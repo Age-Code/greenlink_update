@@ -21,7 +21,7 @@
 
 ESP 토양 센서 데이터를 Pi가 중계하는 코드는 확인되지 않습니다. ESP는 별도로 백엔드에 직접 전송합니다. `config.py`에는 백엔드/AI 서버 주소 및 장치 키 종류의 민감 설정이 포함되어 있으므로 실제 값은 문서화하지 않습니다.
 
-현재 WATER 지속시간 resolver와 worker의 정상 10초 fallback·invalid 명령 처리에 대한 Python unittest 5개가 통과했습니다. 실제 GPIO/펌프 하드웨어 시험은 이 검증 환경에서 실행하지 않았습니다.
+현재 WATER 지속시간 resolver와 worker의 정상 30초 fallback·invalid 명령 처리에 대한 Python unittest 5개가 통과했습니다. 실제 GPIO/펌프 하드웨어 시험은 이 검증 환경에서 실행하지 않았습니다.
 
 ## 기술 스택과 필요한 패키지
 
@@ -77,7 +77,7 @@ greenlink_pi/
 | `sensor_uploader.py` | 환경 센서 JSON을 백엔드에 업로드 | 높음 | Backend 환경 API |
 | `sensor_main.py` | 센서 1회 측정/업로드 진입점 | 높음 | shell/외부 스케줄 |
 | `relay_control.py` | LED 및 펌프 GPIO on/off 실행과 안전 종료 | 높음 | `command_worker` |
-| `water_duration.py` | WATER key 누락 기본값과 0초 초과·10초 이하 범위를 fail-closed로 검증 | 높음 | `command_worker`, Backend `DeviceCommand` |
+| `water_duration.py` | WATER key 누락 기본값과 0초 초과·30초 이하 범위를 fail-closed로 검증 | 높음 | `command_worker`, Backend `DeviceCommand` |
 | `api_client.py` | 대기 명령 조회, 처리/완료 상태 전송 | 높음 | Backend command API |
 | `command_worker.py` | 반복 폴링하여 WATER/LIGHT/SENSOR_REFRESH 명령 실행. SENSOR_REFRESH Backend 명령 생성 경로 연결 완료 | 높음 | GPIO, 센서, Backend |
 | `stream_server.py` | 카메라 캡처, crop/label, MJPEG Flask endpoint | 높음 | Flutter 스트림, 사진 crop |
@@ -89,7 +89,7 @@ greenlink_pi/
 | `run_camera.sh` | 카메라 업로드 작업 실행, 로그 append | 중간 | 사진 운영 |
 | `run_command.sh` | 명령 워커 실행, 로그 append | 중간 | 제어 운영 |
 | `tests/test_water_duration.py` | 누락 fallback, 허용 범위와 invalid/비유한 값 검증 | 중간 | `water_duration.py` |
-| `tests/test_command_worker.py` | 정상 10초 실행·SUCCESS 및 invalid 값의 펌프 미호출·FAILED 검증 | 중간 | `command_worker.py` |
+| `tests/test_command_worker.py` | 정상 30초 실행·SUCCESS 및 invalid 값의 펌프 미호출·FAILED 검증 | 중간 | `command_worker.py` |
 
 ## 하드웨어 연결 구조
 
@@ -249,13 +249,13 @@ Pi 파일에서 ESP와 직접 연결되는 Serial, MQTT, BLE 또는 HTTP 수신 
 * 내부 처리 과정: 명령 상태 PATCH, WATER 지속시간 검증, 허용 펌프 GPIO 검사, 지정 초 동안 펌프 실행, finally off, 결과 전송.
 * 예외 처리: WATER 지속시간 오류를 포함한 명령 예외 시 실패 완료를 전송하고 모든 출력 off를 호출합니다. 지속시간은 펌프 함수 호출 전에 검사합니다.
 * 다른 기능과의 연결: 앱 수동 제어, 백엔드 자동화 판단, 센서 refresh.
-* 주의할 점: `SENSOR_REFRESH` Backend 명령 생성 경로가 연결되어 GAP-01/02가 해소되었습니다. WATER는 Backend와 Pi 양쪽에서 0초 초과·10초 이하만 허용하고 Pi는 `durationSeconds` key가 아예 없을 때만 10초를 사용합니다.
+* 주의할 점: `SENSOR_REFRESH` Backend 명령 생성 경로가 연결되어 GAP-01/02가 해소되었습니다. WATER는 Backend와 Pi 양쪽에서 0초 초과·30초 이하만 허용하고 Pi는 `durationSeconds` key가 아예 없을 때만 30초를 사용합니다.
 
 ### 급수 지속시간의 현재 fail-closed 정책과 물리 보정
 
-현재 소프트웨어 허용 최대 작동 시간은 **10초**입니다. Backend `DeviceCommand`는 WATER duration이 null·0 이하·10초 초과이면 생성 단계에서 거부하며, 수동/자동 급수는 모두 10초 factory를 사용합니다. Pi의 `resolve_water_duration()`은 `durationSeconds` key가 아예 없을 때만 10초를 반환합니다. key가 있는데 null·문자열·boolean·비유한 수·0 이하·10초 초과이면 보정하거나 clamp하지 않고 오류로 처리합니다. 이 검증은 `pump_for_gpio()`보다 먼저 실행되므로 잘못된 duration 명령은 펌프를 한 번도 켜지 않고 `FAILED`로 보고됩니다.
+현재 소프트웨어 허용 최대 작동 시간은 **30초**입니다. Backend `DeviceCommand`는 WATER duration이 null·0 이하·30초 초과이면 생성 단계에서 거부하며, 수동/자동 급수는 모두 30초 factory를 사용합니다. Pi의 `resolve_water_duration()`은 `durationSeconds` key가 아예 없을 때만 30초를 반환합니다. key가 있는데 null·문자열·boolean·비유한 수·0 이하·30초 초과이면 보정하거나 clamp하지 않고 오류로 처리합니다. 이 검증은 `pump_for_gpio()`보다 먼저 실행되므로 잘못된 duration 명령은 펌프를 한 번도 켜지 않고 `FAILED`로 보고됩니다.
 
-10초는 실제 재배기 운영에 맞춰 정한 현재값입니다. 펌프나 화분을 바꾸면 아래 방법으로 다시 산정합니다. 최종 최대 허용 시간은 임의의 숫자보다 실제 장치 보정을 통해 정해야 합니다. 먼저 실제 배선 조건에서 유량을 계산하고, 토양 시험으로 정한 안전 급수량에 20~30%의 여유를 둔 뒤 초 단위로 내림합니다.
+30초는 실제 재배기 운영에 맞춰 정한 현재값입니다. 펌프나 화분을 바꾸면 아래 방법으로 다시 산정합니다. 최종 최대 허용 시간은 임의의 숫자보다 실제 장치 보정을 통해 정해야 합니다. 먼저 실제 배선 조건에서 유량을 계산하고, 토양 시험으로 정한 안전 급수량에 20~30%의 여유를 둔 뒤 초 단위로 내림합니다.
 
 ```text
 measured_flow_ml_per_sec = measured_ml / measured_seconds
@@ -273,10 +273,10 @@ max_duration_seconds = floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_se
 
 | 임시안 | 의미와 판단 |
 | --- | --- |
-| 현재 구현: Backend/Pi 10초 상한 | 양쪽 실행 경계가 강제하는 fail-closed 값입니다. 펌프나 화분을 바꾸면 유량과 토양 시험으로 다시 정합니다. |
+| 현재 구현: Backend/Pi 30초 상한 | 양쪽 실행 경계가 강제하는 fail-closed 값입니다. 펌프나 화분을 바꾸면 유량과 토양 시험으로 다시 정합니다. |
 | 향후 후보: 3초 상한 | 실측 계산이 3초 이상이고 반복 토양/배수/발열 시험도 통과한 경우에만 검토합니다. 현재보다 최대 급수량이 3배가 되므로 숫자만 임의 변경해서는 안 됩니다. |
 
-따라서 권장 순서는 **현재 Backend/Pi 10초 fail-closed 유지 → 실제 유량/토양 시험 → 위 식으로 최대 시간 산정 → 변경이 필요할 때 양쪽 상한과 회귀 테스트를 함께 갱신**입니다.
+따라서 권장 순서는 **현재 Backend/Pi 30초 fail-closed 유지 → 실제 유량/토양 시험 → 위 식으로 최대 시간 산정 → 변경이 필요할 때 양쪽 상한과 회귀 테스트를 함께 갱신**입니다.
 
 ### AI 처리 요청 트리거
 
@@ -342,7 +342,7 @@ max_duration_seconds = floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_se
 * 관련 데이터: 명령 ID/유형/지속시간/펌프 GPIO와 실행 결과.
 * 의존하는 다른 함수/클래스: `ApiClient`, `RelayControl`, `resolve_water_duration()`, 센서 uploader.
 * 에러 처리 방식: 개별 명령 오류를 실패 상태로 보고하고 `all_off()`를 실행합니다.
-* 개선 가능성: 프로세스 재시작 중 중복 실행 방지, 처리 idempotency와 watchdog/service 운영 정의가 필요합니다. WATER 10초 상한은 이미 수신 경계에서 검사하므로 실측으로 변경할 때 Backend/Pi 값을 함께 갱신해야 합니다.
+* 개선 가능성: 프로세스 재시작 중 중복 실행 방지, 처리 idempotency와 watchdog/service 운영 정의가 필요합니다. WATER 30초 상한은 이미 수신 경계에서 검사하므로 실측으로 변경할 때 Backend/Pi 값을 함께 갱신해야 합니다.
 
 ### `RelayControl`
 
@@ -360,7 +360,7 @@ max_duration_seconds = floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_se
 * 관련 데이터: GPIO 핀 매핑, 릴레이 활성 논리.
 * 의존하는 다른 함수/클래스: `gpiozero.OutputDevice`, `config.py`.
 * 에러 처리 방식: 등록되지 않은 펌프 핀은 오류를 발생시키고, 펌프 실행은 finally off를 보장합니다.
-* 개선 가능성: Worker 경계의 10초 제한과 별개로 `RelayControl` 직접 호출에는 duration 정책이 없으므로 다른 호출 경로를 추가할 때 같은 resolver를 거쳐야 합니다. GPIO 상태 피드백 또는 유량 센서 안전 검증을 추가하고, 최대값 변경은 `floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_sec)`의 실측값을 기준으로 Backend와 Pi에서 함께 적용해야 합니다.
+* 개선 가능성: Worker 경계의 30초 제한과 별개로 `RelayControl` 직접 호출에는 duration 정책이 없으므로 다른 호출 경로를 추가할 때 같은 resolver를 거쳐야 합니다. GPIO 상태 피드백 또는 유량 센서 안전 검증을 추가하고, 최대값 변경은 `floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_sec)`의 실측값을 기준으로 Backend와 Pi에서 함께 적용해야 합니다.
 
 ### `StreamCameraServer` 동작 (`stream_server.py`)
 
@@ -429,7 +429,7 @@ max_duration_seconds = floor(max_safe_ml * (0.7 ~ 0.8) / measured_flow_ml_per_se
 | 서비스 운영 정의 부재 | shell script는 있으나 systemd/cron 정의 없음 | worker/stream/scheduler unit과 재시작 정책 버전 관리 |
 | snapshot legacy 정리 | `camera_snapshot_main.py` 삭제 완료 | `/snapshot.jpg` legacy 진입점 제거 상태 유지 |
 | 식물 매핑 고정 | crop과 사용자 식물 연결이 설정 파일에 고정 | 서버 관리 구성 또는 배포별 안전 설정으로 이동 |
-| 제어 안전 | Backend와 Pi가 WATER를 0초 초과·10초 이하로 제한하며, missing key만 10초 fallback. invalid duration은 펌프 호출 전 거부 후 `FAILED` 보고 | 현재 10초 유지, 유량/토양 시험 후 필요할 때 Backend/Pi 상한과 테스트를 함께 변경 |
+| 제어 안전 | Backend와 Pi가 WATER를 0초 초과·30초 이하로 제한하며, missing key만 30초 fallback. invalid duration은 펌프 호출 전 거부 후 `FAILED` 보고 | 현재 30초 유지, 유량/토양 시험 후 필요할 때 Backend/Pi 상한과 테스트를 함께 변경 |
 | AI trigger 신뢰성 | Pi가 단발 AI 요청, 실패 재시도 없음 | 백엔드 작업 큐/상태 관리로 이관 또는 재처리 큐 추가 |
 | 영상 노출 | MJPEG 인증 로직 확인되지 않음 | 사용자별 접근 통제와 reverse proxy/TLS 구성 확인 |
 

@@ -60,7 +60,7 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
             True,
             0,
             -1,
-            10.0001,
+            30.0001,
             math.inf,
             -math.inf,
             math.nan,
@@ -90,7 +90,7 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
                 self.assertFalse(failure_report["success"])
                 self.assertIn("급수 실패", failure_report["result_message"])
 
-    def test_missing_duration_runs_pump_for_ten_seconds_and_reports_success(self):
+    def test_missing_duration_runs_pump_for_thirty_seconds_and_reports_success(self):
         command_worker.handle_water_command({
             "commandId": 43,
             "pumpChannel": {
@@ -102,7 +102,7 @@ class CommandWorkerWaterDurationTest(unittest.TestCase):
         api_client.mark_command_processing.assert_called_once_with(43)
         relay_control.pump_for_gpio.assert_called_once_with(
             gpio_pin=22,
-            seconds=10.0,
+            seconds=30.0,
         )
         api_client.complete_command.assert_called_once()
         relay_control.pump_off.assert_not_called()
