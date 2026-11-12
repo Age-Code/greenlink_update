@@ -1,8 +1,8 @@
 import math
 
 
-DEFAULT_WATER_DURATION_SECONDS = 1.0
-MAX_WATER_DURATION_SECONDS = 1.0
+DEFAULT_WATER_DURATION_SECONDS = 10.0
+MAX_WATER_DURATION_SECONDS = 10.0
 
 
 def resolve_water_duration(command: dict) -> float:
